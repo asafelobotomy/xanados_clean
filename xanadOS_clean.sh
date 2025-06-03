@@ -147,7 +147,11 @@ dependency_check() {
     done
     read -rp $'\nInstall all missing packages? [Y/n] ' install_all
     if [[ "${install_all,,}" =~ ^(y|yes)?$ ]]; then
-      sudo ${PKG_MGR} -S --needed --noconfirm "${MISSING_PKGS[@]}"
+      if [[ ${PKG_MGR} == pacman ]]; then
+        sudo pacman -S --needed --noconfirm "${MISSING_PKGS[@]}"
+      else
+        ${PKG_MGR} -S --needed --noconfirm "${MISSING_PKGS[@]}"
+      fi
       for pkg in "${MISSING_PKGS[@]}"; do
         summary "Installed: $pkg"
       done
@@ -155,7 +159,11 @@ dependency_check() {
       for pkg in "${MISSING_PKGS[@]}"; do
         read -rp "Install $pkg? [Y/n] " answer
         if [[ "${answer,,}" =~ ^(y|yes)?$ ]]; then
-          sudo ${PKG_MGR} -S --needed --noconfirm "$pkg"
+          if [[ ${PKG_MGR} == pacman ]]; then
+            sudo pacman -S --needed --noconfirm "$pkg"
+          else
+            ${PKG_MGR} -S --needed --noconfirm "$pkg"
+          fi
           summary "Installed: $pkg"
         else
           DISABLED_FEATURES+=("$pkg")
@@ -170,7 +178,11 @@ dependency_check() {
 
 system_update() {
   print_banner "System Update"
-  sudo ${PKG_MGR} -Syu --noconfirm
+  if [[ ${PKG_MGR} == pacman ]]; then
+    sudo pacman -Syu --noconfirm
+  else
+    ${PKG_MGR} -Syu --noconfirm
+  fi
   summary "System packages updated."
 }
 
