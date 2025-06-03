@@ -44,7 +44,7 @@ SUMMARY_LOG=()
 # Banner Function
 # ----------------------------
 print_banner() {
-  printf "${BLUE}"
+  printf '%b' "${BLUE}"
   cat <<'EOF'
   ___  _   _ ____  ____  _____ ____  _   _
  / _ \| | | |  _ \|  _ \| ____|  _ \| | | |
@@ -53,7 +53,7 @@ print_banner() {
  \__\_\\___/|_| \_\____/|_____|_| \_\\___/
 EOF
   printf "            %s\n" "$1"
-  printf "${NC}"
+  printf '%b' "${NC}"
 }
 
 # ----------------------------
@@ -251,12 +251,10 @@ fi
 print_banner "Maintenance Complete"
 log "System maintenance complete: $(date)"
 
-printf "${CYAN}\nSummary:\n${NC}"
+printf '%b' "${CYAN}\nSummary:\n${NC}"
 for line in "${SUMMARY_LOG[@]}"; do
   printf "  • %s\n" "$line"
 done
 
-printf "\n${BLUE}[✓] Maintenance completed successfully.${NC}\n"
+printf '%b\n' "${BLUE}[✓] Maintenance completed successfully." "${NC}"
 exit 0
-
-
