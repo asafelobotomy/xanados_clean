@@ -165,9 +165,9 @@ summary "System packages updated."
 # Orphaned Packages
 # ----------------------------
 print_banner "Remove Orphans"
-orphans=$(sudo pacman -Qtdq 2>/dev/null || true)
-if [[ -n "${orphans}" ]]; then
-  sudo pacman -Rns --noconfirm ${orphans}
+  orphans=$(sudo pacman -Qtdq 2>/dev/null || true)
+  if [[ -n "${orphans}" ]]; then
+  sudo pacman -Rns --noconfirm "${orphans}"
   summary "Removed $(echo "${orphans}" | wc -l) orphaned packages."
 else
   summary "No orphan packages found."
@@ -256,6 +256,7 @@ for line in "${SUMMARY_LOG[@]}"; do
   printf "  • %s\n" "$line"
 done
 
-printf "\n${BLUE}[✓
-::contentReference[oaicite:18]{index=18}
+printf "\n${BLUE}[✓] Maintenance completed successfully.${NC}\n"
+exit 0
+
 
