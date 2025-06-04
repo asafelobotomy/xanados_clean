@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # system_maint.sh — Arch Linux System Maintenance (Gaming + Dev + Security)
 # Author: Linux Specialist (ChatGPT)
-# Updated: 2025-06-05
+# Updated: 2025-06-06
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -34,6 +34,20 @@ summary() {
 trap 'error "Script exited unexpectedly. See log: ${LOG_FILE}"' ERR
 SUMMARY_LOG=()
 
+# Determine privilege level and configure sudo usage
+if (( EUID == 0 )); then
+  if [[ -n ${SUDO_USER:-} ]]; then
+    SUDO=""
+    USER_CMD=(sudo -u "$SUDO_USER")
+  else
+    error "Please run this script as a regular user with sudo access."
+    exit 1
+  fi
+else
+  SUDO="sudo"
+  USER_CMD=()
+fi
+
 print_banner() {
   printf '%b' "${BLUE}"
   cat <<'ART'
@@ -63,9 +77,9 @@ run_step() {
 refresh_mirrors() {
   print_banner "Refresh Mirrors"
   log "Refreshing mirrorlist before any installs or upgrades..."
-  sudo pacman -Sy --noconfirm reflector
-  sudo reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-  sudo pacman -Syy --noconfirm
+  ${SUDO} pacman -Sy --noconfirm reflector
+  ${SUDO} reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+  ${SUDO} pacman -Syy --noconfirm
   summary "Mirrorlist refreshed."
 }
 
@@ -76,9 +90,9 @@ choose_pkg_manager() {
   else
     read -rp $'\nParu not found. Would you like to install it? [Y/n] ' install_paru
     if [[ "${install_paru,,}" =~ ^(y|yes)?$ ]]; then
-      sudo pacman -S --needed --noconfirm base-devel git
-      git clone https://aur.archlinux.org/paru.git /tmp/paru
-      (cd /tmp/paru && makepkg -si --noconfirm)
+      ${SUDO} pacman -S --needed --noconfirm base-devel git
+      "${USER_CMD[@]}" git clone https://aur.archlinux.org/paru.git /tmp/paru
+      (cd /tmp/paru && "${USER_CMD[@]}" makepkg -si --noconfirm)
       PKG_MGR="paru"
       summary "Paru installed and selected."
     else
@@ -88,11 +102,19 @@ choose_pkg_manager() {
   fi
 }
 
+pkg_mgr_run() {
+  if [[ ${PKG_MGR} == pacman ]]; then
+    ${SUDO} pacman "$@"
+  else
+    "${USER_CMD[@]}" paru "$@"
+  fi
+}
+
 rsync_backup() {
   if command -v rsync &>/dev/null; then
     read -rp $'\nDestination path for rsync backup (leave blank to skip): ' RSYNC_DIR
     if [[ -n "${RSYNC_DIR}" ]]; then
-      sudo rsync -aAX --delete --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} / "${RSYNC_DIR}"
+      ${SUDO} rsync -aAX --delete --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} / "${RSYNC_DIR}"
       summary "Rsync backup completed to ${RSYNC_DIR}"
     else
       summary "Rsync backup skipped."
@@ -103,10 +125,10 @@ rsync_backup() {
 pre_backup() {
   print_banner "System Backup"
   if command -v timeshift &>/dev/null; then
-    sudo timeshift --create --comments "Pre-maintenance backup" --tags D
+    ${SUDO} timeshift --create --comments "Pre-maintenance backup" --tags D
     summary "System backup created using Timeshift."
   elif command -v snapper &>/dev/null; then
-    sudo snapper create -d "Pre-maintenance backup"
+    ${SUDO} snapper create -d "Pre-maintenance backup"
     summary "System backup created using Snapper."
   else
     summary "⚠️ No supported backup tool found. Backup skipped."
@@ -147,11 +169,7 @@ dependency_check() {
     done
     read -rp $'\nInstall all missing packages? [Y/n] ' install_all
     if [[ "${install_all,,}" =~ ^(y|yes)?$ ]]; then
-      if [[ ${PKG_MGR} == pacman ]]; then
-        sudo pacman -S --needed --noconfirm "${MISSING_PKGS[@]}"
-      else
-        ${PKG_MGR} -S --needed --noconfirm "${MISSING_PKGS[@]}"
-      fi
+      pkg_mgr_run -S --needed --noconfirm "${MISSING_PKGS[@]}"
       for pkg in "${MISSING_PKGS[@]}"; do
         summary "Installed: $pkg"
       done
@@ -159,11 +177,7 @@ dependency_check() {
       for pkg in "${MISSING_PKGS[@]}"; do
         read -rp "Install $pkg? [Y/n] " answer
         if [[ "${answer,,}" =~ ^(y|yes)?$ ]]; then
-          if [[ ${PKG_MGR} == pacman ]]; then
-            sudo pacman -S --needed --noconfirm "$pkg"
-          else
-            ${PKG_MGR} -S --needed --noconfirm "$pkg"
-          fi
+          pkg_mgr_run -S --needed --noconfirm "$pkg"
           summary "Installed: $pkg"
         else
           DISABLED_FEATURES+=("$pkg")
@@ -178,11 +192,7 @@ dependency_check() {
 
 system_update() {
   print_banner "System Update"
-  if [[ ${PKG_MGR} == pacman ]]; then
-    sudo pacman -Syu --noconfirm
-  else
-    ${PKG_MGR} -Syu --noconfirm
-  fi
+  pkg_mgr_run -Syu --noconfirm
   summary "System packages updated."
 }
 
@@ -196,9 +206,9 @@ flatpak_update() {
 
 remove_orphans() {
   print_banner "Remove Orphans"
-  orphans=$(sudo pacman -Qtdq 2>/dev/null || true)
+  orphans=$(${SUDO} pacman -Qtdq 2>/dev/null || true)
   if [[ -n "${orphans}" ]]; then
-    sudo pacman -Rns --noconfirm "${orphans}"
+    ${SUDO} pacman -Rns --noconfirm "${orphans}"
     summary "Removed $(echo "${orphans}" | wc -l) orphaned packages."
   else
     summary "No orphan packages found."
@@ -208,7 +218,7 @@ remove_orphans() {
 cache_cleanup() {
   print_banner "Cache Cleanup"
   if command -v paccache &>/dev/null; then
-    sudo paccache -r
+    ${SUDO} paccache -r
     summary "Pacman cache cleaned."
   fi
   read -rp $'\nClean ~/.cache directory? [y/N] ' clean_home
@@ -231,8 +241,8 @@ security_scan() {
   fi
 
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " rkhunter " ]]; then
-    sudo rkhunter --update
-    if sudo rkhunter --check --skip-keypress | grep -q Warning; then
+    ${SUDO} rkhunter --update
+    if ${SUDO} rkhunter --check --skip-keypress | grep -q Warning; then
       summary "⚠️ rkhunter reported warnings."
     else
       summary "rkhunter scan clean."
@@ -257,9 +267,9 @@ btrfs_maintenance() {
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " btrfs-progs " ]]; then
     mapfile -t btrfs_mounts < <(findmnt -t btrfs -n -o TARGET)
     for path in "${btrfs_mounts[@]}"; do
-      sudo btrfs scrub start -Bd "$path"
-      sudo btrfs balance start -dusage=75 -musage=75 "$path"
-      sudo btrfs filesystem defragment -r "$path"
+      ${SUDO} btrfs scrub start -Bd "$path"
+      ${SUDO} btrfs balance start -dusage=75 -musage=75 "$path"
+      ${SUDO} btrfs filesystem defragment -r "$path"
       summary "Btrfs maintenance completed on $path"
     done
   else
@@ -271,7 +281,7 @@ ssd_trim() {
   print_banner "SSD TRIM"
   mapfile -t ssds < <(lsblk -d -o name,rota | awk '$2 == 0 {print "/dev/" $1}')
   for dev in "${ssds[@]}"; do
-    sudo fstrim -v "$dev" && summary "SSD TRIM: $dev"
+    ${SUDO} fstrim -v "$dev" && summary "SSD TRIM: $dev"
   done
 }
 
@@ -292,12 +302,12 @@ system_report() {
     systemctl --user status gamemoded && summary "Gamemode status checked."
   fi
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " ufw " ]]; then
-    sudo ufw status verbose && summary "UFW status checked."
+    ${SUDO} ufw status verbose && summary "UFW status checked."
   fi
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " smartmontools " ]]; then
     while read -r dev _; do
-      sudo smartctl -H "$dev" && summary "SMART health check: $dev"
-    done < <(sudo smartctl --scan)
+      ${SUDO} smartctl -H "$dev" && summary "SMART health check: $dev"
+    done < <(${SUDO} smartctl --scan)
   fi
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " lm_sensors " ]]; then
     sensors && summary "Temperature sensors read."

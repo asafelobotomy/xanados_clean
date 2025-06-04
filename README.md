@@ -23,6 +23,9 @@ Run the script directly:
 bash xanadOS_clean.sh
 ```
 
+Run it as a normal user with sudo privileges. Executing the script as root will
+cause AUR helpers like `paru` to fail.
+
 Logs are stored in `~/Documents/system_maint.log` by default.
 
 ## Building an AppImage
