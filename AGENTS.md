@@ -1,69 +1,136 @@
 # AGENTS.md
 
-## 🤖 Codex Chat GPT Agent: Bash Script Assistant
+> **Arch Linux System Maintenance Script — Agent Documentation**  
+> _Maintains a development- and gaming-focused Arch system with security in mind._
 
-### Overview
-
-This GitHub-integrated AI agent assists developers, SREs, and DevOps engineers with writing, reviewing, debugging, and optimizing **Bash scripts** directly within your repository. It is part of the AI tooling ecosystem designed to support infrastructure automation and scripting tasks via natural language interaction.
-
----
-
-### 🔧 Capabilities
-
-- Generate shell scripts from natural language descriptions
-- Debug broken scripts and suggest minimal, POSIX-compliant fixes
-- Annotate and explain Bash lines, blocks, or full scripts
-- Improve script reliability with idiomatic practices:
-  - `set -euo pipefail`
-  - Quoting and input validation
-  - Meaningful exit codes
-- Recommend usage of standard tooling (`find`, `xargs`, `awk`, etc.)
-- Create GitHub Actions-compatible shell steps
+📅 **Last updated:** 2025-06-05  
+✍️ **Author:** [Linux Specialist (ChatGPT)]
 
 ---
 
-### 🔐 Security and Compliance
+## 🔧 Package Managers
 
-- Applies hardening guidelines aligned with CIS Benchmarks and ShellCheck suggestions
-- Detects unsafe practices like:
-  - `eval` misuse
-  - Unquoted variable expansion
-  - Unsafe file operations
-- Encourages use of `mktemp`, `read -r`, and strict IFS control
-- Warns against insecure download-execute patterns
+| Agent     | Role                         | Notes                                     |
+|-----------|------------------------------|-------------------------------------------|
+| `pacman`  | Core Arch package manager     | Used when `paru` is not installed         |
+| `paru`    | AUR helper + frontend for `pacman` | Used if available; prompts for install otherwise |
 
 ---
 
-### ✅ GitHub Use Cases
+## 🛡️ Security & Auditing Tools
 
-- **Script development in PRs:** Auto-generate or review shell scripts in feature branches
-- **CI/CD pipelines:** Write or improve `bash` blocks in GitHub Actions workflows (`.github/workflows/*.yml`)
-- **Automation hooks:** Create shell scripts for GitHub webhooks, pre-commit, or post-merge hooks
-- **Documentation support:** Embed examples in `README.md` or `/docs` with annotated Bash code
-
----
-
-### 🧠 Prompt Examples
-
-Use the agent in issues, pull requests, or discussions like so:
-
-- “Create a Bash script that backs up `/etc` to S3 and logs output.”
-- “Explain what this snippet does: `while read -r line; do echo "$line"; done < file`”
-- “Make this GitHub Action shell step secure and POSIX-compliant.”
-- “Why is this script breaking on filenames with spaces?”
+| Agent          | Function                              | Optional? |
+|----------------|---------------------------------------|-----------|
+| `arch-audit`   | Checks packages for known CVEs        | ✅        |
+| `rkhunter`     | Scans for rootkits and backdoors      | ✅        |
+| `ufw`          | Displays firewall status              | ✅        |
 
 ---
 
-### ⚠️ Limitations
+## 💾 Backup Agents
 
-- This agent does **not execute code** — all suggestions should be reviewed and tested locally or in CI
-- Assumes Linux shell environment unless specified (`#!/bin/bash`)
-- Cannot infer repository secrets or GitHub context unless provided explicitly (e.g., via workflow inputs)
+| Agent        | Function                                 | Fallback |
+|--------------|------------------------------------------|----------|
+| `timeshift`  | Snapshot tool for system backups         | Yes      |
+| `snapper`    | Btrfs-based snapshot tool                | Yes      |
+| `rsync`      | Full filesystem backup to target dir     | No       |
 
 ---
 
-### 🧩 Integration Tips
+## 💽 Storage & Filesystem Tools
 
-- **Link Bash files in issues** using:
-  ```markdown
-  [script.sh](./scripts/script.sh)
+| Agent         | Role & Function                                     |
+|---------------|-----------------------------------------------------|
+| `btrfs-progs` | Manages Btrfs scrub/balance/defrag                  |
+| `util-linux`  | Provides tools like `fstrim`, `lsblk`, etc.         |
+| `smartmontools` | Checks SSD/HDD health via `smartctl`             |
+
+---
+
+## 🧪 Diagnostics & Monitoring
+
+| Agent         | Role                       |
+|---------------|----------------------------|
+| `pciutils`    | Detects PCI hardware       |
+| `lm_sensors`  | Displays CPU/GPU temperatures |
+| `shellcheck`  | Static shell script analyzer for linting the script |
+
+---
+
+## 🎮 Gaming Enhancements
+
+| Agent         | Role                                     |
+|---------------|------------------------------------------|
+| `gamemode`    | Boosts performance for games             |
+| `nvidia-utils`| Enables `nvidia-smi` for GPU diagnostics |
+
+---
+
+## 🌐 Platform Tools
+
+| Agent     | Role                    |
+|-----------|-------------------------|
+| `flatpak` | Updates sandboxed apps  |
+
+---
+
+## 🧹 System Cleanup
+
+| Agent            | Function                            |
+|------------------|-------------------------------------|
+| `paccache`       | Cleans old pacman caches            |
+| `journalctl`     | Rotates logs older than 7 days      |
+| `systemctl`      | Lists failed services               |
+
+---
+
+## 📡 Network Operations
+
+| Agent      | Purpose                                |
+|------------|----------------------------------------|
+| `reflector`| Optimizes mirrorlist for pacman        |
+| `curl`     | Fetches latest Arch news feed          |
+
+---
+
+## 🧠 Behavior Notes
+
+<details>
+<summary><strong>📌 Missing Agents</strong></summary>
+
+- If agents like `arch-audit` or `rkhunter` are not installed, the script offers to install them.
+- Declining to install agents disables related functionality (e.g., skipping rootkit scans).
+- All agent interactions are logged in `system_maint.log`.
+</details>
+
+<details>
+<summary><strong>💡 Interactive Mode</strong></summary>
+
+- When run in "custom selection" mode, the user is prompted before each maintenance step.
+- Most actions can be skipped interactively to suit system-specific needs.
+</details>
+
+<details>
+<summary><strong>🚀 Automation & CI Integration</strong></summary>
+
+### GitHub Actions Integration (ShellCheck)
+To enable automatic script linting on GitHub, create a workflow at `.github/workflows/shellcheck.yml`:
+
+```yaml
+name: ShellCheck Lint
+
+on:
+  push:
+    paths:
+      - '**.sh'
+  pull_request:
+    paths:
+      - '**.sh'
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@v2
