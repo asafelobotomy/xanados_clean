@@ -1,6 +1,7 @@
 # xanadOS Clean
 
-This repository contains `xanadOS_clean.sh`, a comprehensive Bash script for Arch Linux maintenance. It provides:
+This repository contains `xanadOS_clean.sh`, a comprehensive Bash script for
+Arch Linux maintenance. It provides:
 
 - Mirror refresh using Reflector
 - Prompted installation of the `paru` AUR helper or fallback to pacman
@@ -31,7 +32,8 @@ Logs are stored in `~/Documents/system_maint.log` by default.
 
 ## Building an AppImage
 
-An example `build_appimage.sh` script is included to package the maintenance script as an AppImage. The steps are:
+An example `build_appimage.sh` script is included to package the maintenance
+script as an AppImage. The steps are:
 
 1. Execute the build script:
 
@@ -39,17 +41,26 @@ An example `build_appimage.sh` script is included to package the maintenance scr
 bash build_appimage.sh
 ```
 
-2. The resulting `xanadOS_clean-1.0.AppImage` can then be distributed and run on new systems.
+1. The resulting `xanadOS_clean-1.0.AppImage` can then be distributed and run
+   on new systems.
 
-The build script downloads `appimagetool` if necessary and creates a minimal AppDir containing the script, desktop entry, and placeholder icon.
+The build script downloads `appimagetool` if necessary and creates a minimal
+AppDir containing the script, desktop entry, and placeholder icon.
 
 ## GitHub Actions
 
-This repository uses several GitHub Actions workflows stored in `.github/workflows`:
+This repository uses several GitHub Actions workflows stored in
+`.github/workflows`:
 
-- **Markdown Lint** (`markdownlint.yml`) – runs [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) to ensure all `*.md` files follow common style rules.
-- **Proselint** (`proselint.yml`) – checks the prose in our documentation with [proselint](https://github.com/amperser/proselint).
-- **ShellCheck** (`shellcheck.yml`) – lints all shell scripts using [ShellCheck](https://github.com/koalaman/shellcheck).
-- **YAML Lint** (`yamllint.yml`) – validates YAML files with [yamllint](https://github.com/adrienverge/yamllint).
+- **Markdown Lint** (`markdownlint.yml`) – runs
+  [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) to ensure
+  all `*.md` files follow common style rules.
+- **Proselint** (`proselint.yml`) – checks the prose in our documentation with
+  [proselint](https://github.com/amperser/proselint).
+- **ShellCheck** (`shellcheck.yml`) – lints all shell scripts using
+  [ShellCheck](https://github.com/koalaman/shellcheck).
+- **YAML Lint** (`yamllint.yml`) – validates YAML files with
+  [yamllint](https://github.com/adrienverge/yamllint).
 
-These workflows run automatically on pushes and pull requests to help keep the repository tidy and consistent.
+These workflows run automatically on pushes and pull requests to help keep the
+repository tidy and consistent.
