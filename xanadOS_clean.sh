@@ -35,7 +35,7 @@ trap 'error "Script exited unexpectedly. See log: ${LOG_FILE}"' ERR
 SUMMARY_LOG=()
 
 print_banner() {
-  printf "${BLUE}"
+  printf '%b' "${BLUE}"
   cat <<'ART'
                        _  ___  ___   ___ _    ___   _   _  _      _
 __ ____ _ _ _  __ _ __| |/ _ \/ __| / __| |  | __| /_\ | \| |  __| |_
@@ -44,7 +44,7 @@ __ ____ _ _ _  __ _ __| |/ _ \/ __| / __| |  | __| /_\ | \| |  __| |_
                                  |___|
 ART
   printf "            %s\n" "$1"
-  printf "${NC}"
+  printf '%b' "${NC}"
 }
 
 run_step() {
@@ -147,7 +147,11 @@ dependency_check() {
     done
     read -rp $'\nInstall all missing packages? [Y/n] ' install_all
     if [[ "${install_all,,}" =~ ^(y|yes)?$ ]]; then
-      sudo ${PKG_MGR} -S --needed --noconfirm "${MISSING_PKGS[@]}"
+      if [[ ${PKG_MGR} == pacman ]]; then
+        sudo pacman -S --needed --noconfirm "${MISSING_PKGS[@]}"
+      else
+        ${PKG_MGR} -S --needed --noconfirm "${MISSING_PKGS[@]}"
+      fi
       for pkg in "${MISSING_PKGS[@]}"; do
         summary "Installed: $pkg"
       done
@@ -155,7 +159,11 @@ dependency_check() {
       for pkg in "${MISSING_PKGS[@]}"; do
         read -rp "Install $pkg? [Y/n] " answer
         if [[ "${answer,,}" =~ ^(y|yes)?$ ]]; then
-          sudo ${PKG_MGR} -S --needed --noconfirm "$pkg"
+          if [[ ${PKG_MGR} == pacman ]]; then
+            sudo pacman -S --needed --noconfirm "$pkg"
+          else
+            ${PKG_MGR} -S --needed --noconfirm "$pkg"
+          fi
           summary "Installed: $pkg"
         else
           DISABLED_FEATURES+=("$pkg")
@@ -170,7 +178,11 @@ dependency_check() {
 
 system_update() {
   print_banner "System Update"
-  sudo ${PKG_MGR} -Syu --noconfirm
+  if [[ ${PKG_MGR} == pacman ]]; then
+    sudo pacman -Syu --noconfirm
+  else
+    ${PKG_MGR} -Syu --noconfirm
+  fi
   summary "System packages updated."
 }
 
@@ -295,11 +307,11 @@ system_report() {
 final_summary() {
   print_banner "Maintenance Complete"
   log "System maintenance complete: $(date)"
-  printf "${CYAN}\nSummary:\n${NC}"
+  printf '%b' "${CYAN}\nSummary:\n${NC}"
   for line in "${SUMMARY_LOG[@]}"; do
     printf "  • %s\n" "$line"
   done
-  printf "\n${BLUE}[✓] Maintenance completed successfully.${NC}\n"
+  printf '%b\n' "${BLUE}[✓] Maintenance completed successfully.${NC}"
 }
 
 main_menu() {
