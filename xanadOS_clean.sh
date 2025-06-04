@@ -214,7 +214,11 @@ dependency_check() {
 
 system_update() {
   print_banner "System Update"
-  pkg_mgr_run -Syu --noconfirm
+  if [[ ${PKG_MGR} == pacman ]]; then
+    ${SUDO} pacman -Syu --noconfirm
+  else
+    "${USER_CMD[@]}" paru -Syu --noconfirm
+  fi
   summary "System packages updated."
 }
 
