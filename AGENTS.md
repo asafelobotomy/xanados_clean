@@ -49,11 +49,11 @@
 
 ## 🧪 Diagnostics & Monitoring
 
-| Agent         | Role                       |
-|---------------|----------------------------|
-| `pciutils`    | Detects PCI hardware       |
-| `lm_sensors`  | Displays CPU/GPU temperatures |
-| `shellcheck`  | Static shell script analyzer for linting the script |
+| Agent         | Role                            |
+|---------------|---------------------------------|
+| `pciutils`    | Detects PCI hardware            |
+| `lm_sensors`  | Displays CPU/GPU temperatures   |
+| `shellcheck`  | Analyzes shell script syntax and style |
 
 ---
 
@@ -111,26 +111,30 @@
 </details>
 
 <details>
-<summary><strong>🚀 Automation & CI Integration</strong></summary>
+<summary><strong>🚀 CI/CD Integration — ShellCheck</strong></summary>
 
-### GitHub Actions Integration (ShellCheck)
-To enable automatic script linting on GitHub, create a workflow at `.github/workflows/shellcheck.yml`:
+To automatically lint all shell scripts on push or pull request, add the following GitHub Actions workflow at:
+
+📁 `.github/workflows/shellcheck.yml`
 
 ```yaml
-name: ShellCheck Lint
+name: ShellCheck
 
 on:
   push:
     paths:
-      - '**.sh'
+      - '**/*.sh'
   pull_request:
     paths:
-      - '**.sh'
+      - '**/*.sh'
 
 jobs:
   shellcheck:
+    name: Shell Script Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@v2
