@@ -3,15 +3,17 @@
 This repository contains `xanadOS_clean.sh`, a comprehensive Bash script for Arch Linux maintenance. It provides:
 
 - Mirror refresh using Reflector
-- Optional system backups via Timeshift, Snapper, or rsync
-- Dependency checking for common utilities
-- System and Flatpak updates
-- Orphan package removal and cache cleanup
+- Prompted installation of the `paru` AUR helper or fallback to pacman
+- Optional system backups via Timeshift, Snapper, or user-defined `rsync`
+- Dependency checking with interactive installation of recommended packages
+- System updates using pacman or paru and optional Flatpak updates
+- Orphan package removal and cache cleanup with journal rotation
 - Security scanning with arch-audit and rkhunter
-- Btrfs maintenance and SSD trimming
+- Btrfs maintenance tasks and SSD trimming
 - Checks for failed systemd services and recent journal errors
-- System reporting with GPU, firewall, and SMART status
-- Interactive or unattended execution with a simple menu
+- Display of recent Arch news headlines
+- System reporting with GPU, firewall, SMART status, and sensors
+- Interactive menu for full or step-by-step maintenance
 
 ## Usage
 
