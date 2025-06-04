@@ -8,7 +8,8 @@ Arch Linux maintenance. It provides:
 - Optional system backups via Timeshift, Snapper, or user-defined `rsync` \
   (skipped if a snapshot exists from the last 30 days)
 - Dependency checking with interactive installation of recommended packages
-- System updates using `paru -Syu` or `sudo pacman -Syu` if paru isn't installed, with optional Flatpak updates
+- System updates using `paru -Syu` or `sudo pacman -Syu` if paru isn't
+  installed, with optional Flatpak updates
 - Orphan package removal and cache cleanup with journal rotation
 - Security scanning with arch-audit and rkhunter
 - Btrfs maintenance tasks and SSD trimming
