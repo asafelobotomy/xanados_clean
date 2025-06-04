@@ -4,7 +4,8 @@ This repository contains `xanadOS_clean.sh`, a comprehensive Bash script for Arc
 
 - Mirror refresh using Reflector
 - Prompted installation of the `paru` AUR helper or fallback to pacman
-- Optional system backups via Timeshift, Snapper, or user-defined `rsync`
+- Optional system backups via Timeshift, Snapper, or user-defined `rsync` \
+  (skipped if a snapshot exists from the last 30 days)
 - Dependency checking with interactive installation of recommended packages
 - System updates using pacman or paru and optional Flatpak updates
 - Orphan package removal and cache cleanup with journal rotation
