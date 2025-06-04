@@ -124,15 +124,37 @@ rsync_backup() {
 
 pre_backup() {
   print_banner "System Backup"
+  local now
+  now=$(date +%s)
+  local threshold=$((30*24*60*60))
+
   if command -v timeshift &>/dev/null; then
+    local last_ts
+    last_ts=$(${SUDO} find /timeshift/snapshots -maxdepth 1 -type d \
+      -name '????-??-??_*' -printf '%T@\n' 2>/dev/null | sort -rn | head -n1)
+    if [[ -n $last_ts ]] && (( now - ${last_ts%.*} < threshold )); then
+      summary "Recent Timeshift snapshot found. Skipping backup step."
+      return
+    fi
     ${SUDO} timeshift --create --comments "Pre-maintenance backup" --tags D
     summary "System backup created using Timeshift."
+    return
   elif command -v snapper &>/dev/null; then
+    local last_snap
+    last_snap=$(${SUDO} snapper list 2>/dev/null | awk 'NR>2 {print $5" "$6}' | tail -n1)
+    if [[ -n $last_snap ]]; then
+      local snap_ts
+      snap_ts=$(date -d "$last_snap" +%s 2>/dev/null || echo 0)
+      if (( now - snap_ts < threshold )); then
+        summary "Recent Snapper snapshot found. Skipping backup step."
+        return
+      fi
+    fi
     ${SUDO} snapper create -d "Pre-maintenance backup"
     summary "System backup created using Snapper."
-  else
-    summary "⚠️ No supported backup tool found. Backup skipped."
+    return
   fi
+
   rsync_backup
 }
 
