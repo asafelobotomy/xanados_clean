@@ -1,10 +1,28 @@
 # AGENTS.md
 
 > **Arch Linux System Maintenance Script — Agent Documentation**  
-> _Maintains a development- and gaming-focused Arch system with security in mind._
+> _Maintains a development-, gaming-, and security-optimized Arch system._
 
 📅 **Last updated:** 2025-06-05  
 ✍️ **Author:** [Linux Specialist (ChatGPT)]
+
+---
+
+## 🧠 Purpose
+
+This document lists all **system agents** — tools, packages, and services invoked by the `system_maint.sh` Bash script.
+
+Each agent includes:
+- Its purpose (role)
+- The function it serves in the script
+- Whether it's optional or required
+- Installation and integration notes when relevant
+
+This helps with:
+- Understanding script behavior
+- Troubleshooting system dependencies
+- Automating CI validation (e.g., ShellCheck)
+- Aiding AI tools like GitHub Copilot, ChatGPT, or Codex with context
 
 ---
 
@@ -12,57 +30,57 @@
 
 | Agent     | Role                         | Notes                                     |
 |-----------|------------------------------|-------------------------------------------|
-| `pacman`  | Core Arch package manager     | Used when `paru` is not installed         |
-| `paru`    | AUR helper + frontend for `pacman` | Used if available; prompts for install otherwise |
+| <!-- AGENT: pacman --> `pacman`  | Core Arch package manager     | Used when `paru` is not available         |
+| <!-- AGENT: paru --> `paru`    | AUR helper and `pacman` frontend | Used if installed, prompts if missing     |
 
 ---
 
 ## 🛡️ Security & Auditing Tools
 
-| Agent          | Function                              | Optional? |
-|----------------|---------------------------------------|-----------|
-| `arch-audit`   | Checks packages for known CVEs        | ✅        |
-| `rkhunter`     | Scans for rootkits and backdoors      | ✅        |
-| `ufw`          | Displays firewall status              | ✅        |
+| Agent            | Function                              | Optional |
+|------------------|---------------------------------------|----------|
+| <!-- AGENT: arch-audit --> `arch-audit`   | Checks packages for known CVEs        | ✅       |
+| <!-- AGENT: rkhunter --> `rkhunter`       | Scans for rootkits and backdoors      | ✅       |
+| <!-- AGENT: ufw --> `ufw`                 | Displays firewall status              | ✅       |
 
 ---
 
 ## 💾 Backup Agents
 
-| Agent        | Function                                 | Fallback |
-|--------------|------------------------------------------|----------|
-| `timeshift`  | Snapshot tool for system backups         | Yes      |
-| `snapper`    | Btrfs-based snapshot tool                | Yes      |
-| `rsync`      | Full filesystem backup to target dir     | No       |
+| Agent           | Function                                   | Fallback |
+|-----------------|--------------------------------------------|----------|
+| <!-- AGENT: timeshift --> `timeshift`     | Snapshot tool for system backups       | Yes      |
+| <!-- AGENT: snapper --> `snapper`         | Btrfs-based snapshot utility           | Yes      |
+| <!-- AGENT: rsync --> `rsync`             | Full filesystem backup (manual path)   | No       |
 
 ---
 
 ## 💽 Storage & Filesystem Tools
 
-| Agent         | Role & Function                                     |
-|---------------|-----------------------------------------------------|
-| `btrfs-progs` | Manages Btrfs scrub/balance/defrag                  |
-| `util-linux`  | Provides tools like `fstrim`, `lsblk`, etc.         |
-| `smartmontools` | Checks SSD/HDD health via `smartctl`             |
+| Agent             | Role & Function                                  |
+|-------------------|--------------------------------------------------|
+| <!-- AGENT: btrfs-progs --> `btrfs-progs`     | Maintains Btrfs volumes (scrub, defrag, balance) |
+| <!-- AGENT: util-linux --> `util-linux`       | Provides tools like `fstrim`, `lsblk`            |
+| <!-- AGENT: smartmontools --> `smartmontools` | Checks SSD/HDD health via `smartctl`             |
 
 ---
 
 ## 🧪 Diagnostics & Monitoring
 
-| Agent         | Role                            |
-|---------------|---------------------------------|
-| `pciutils`    | Detects PCI hardware            |
-| `lm_sensors`  | Displays CPU/GPU temperatures   |
-| `shellcheck`  | Analyzes shell script syntax and style |
+| Agent             | Function                          |
+|-------------------|-----------------------------------|
+| <!-- AGENT: pciutils --> `pciutils`       | Detects PCI hardware like GPUs/CPUs     |
+| <!-- AGENT: lm_sensors --> `lm_sensors`   | Reports system temperatures             |
+| <!-- AGENT: shellcheck --> `shellcheck`   | Static analyzer for shell script quality |
 
 ---
 
 ## 🎮 Gaming Enhancements
 
-| Agent         | Role                                     |
-|---------------|------------------------------------------|
-| `gamemode`    | Boosts performance for games             |
-| `nvidia-utils`| Enables `nvidia-smi` for GPU diagnostics |
+| Agent             | Role                                           |
+|-------------------|------------------------------------------------|
+| <!-- AGENT: gamemode --> `gamemode`       | Boosts performance for games             |
+| <!-- AGENT: nvidia-utils --> `nvidia-utils` | Enables GPU diagnostics via `nvidia-smi` |
 
 ---
 
@@ -70,50 +88,36 @@
 
 | Agent     | Role                    |
 |-----------|-------------------------|
-| `flatpak` | Updates sandboxed apps  |
+| <!-- AGENT: flatpak --> `flatpak` | Supports and updates sandboxed apps  |
 
 ---
 
 ## 🧹 System Cleanup
 
-| Agent            | Function                            |
-|------------------|-------------------------------------|
-| `paccache`       | Cleans old pacman caches            |
-| `journalctl`     | Rotates logs older than 7 days      |
-| `systemctl`      | Lists failed services               |
+| Agent             | Function                            |
+|-------------------|-------------------------------------|
+| <!-- AGENT: paccache --> `paccache`       | Cleans old Pacman package caches        |
+| <!-- AGENT: journalctl --> `journalctl`   | Rotates and filters system logs         |
+| <!-- AGENT: systemctl --> `systemctl`     | Lists failed services or unit issues    |
 
 ---
 
 ## 📡 Network Operations
 
-| Agent      | Purpose                                |
-|------------|----------------------------------------|
-| `reflector`| Optimizes mirrorlist for pacman        |
-| `curl`     | Fetches latest Arch news feed          |
+| Agent         | Purpose                                |
+|---------------|----------------------------------------|
+| <!-- AGENT: reflector --> `reflector` | Optimizes and saves mirrorlist         |
+| <!-- AGENT: curl --> `curl`           | Fetches latest Arch Linux news feed    |
 
 ---
 
-## 🧠 Behavior Notes
+## ⚙️ Shell Script Linting (CI)
 
-<details>
-<summary><strong>📌 Missing Agents</strong></summary>
+| Agent        | Role                                      |
+|--------------|-------------------------------------------|
+| <!-- AGENT: shellcheck --> `shellcheck` | Validates script syntax, safety, and style |
 
-- If agents like `arch-audit` or `rkhunter` are not installed, the script offers to install them.
-- Declining to install agents disables related functionality (e.g., skipping rootkit scans).
-- All agent interactions are logged in `system_maint.log`.
-</details>
-
-<details>
-<summary><strong>💡 Interactive Mode</strong></summary>
-
-- When run in "custom selection" mode, the user is prompted before each maintenance step.
-- Most actions can be skipped interactively to suit system-specific needs.
-</details>
-
-<details>
-<summary><strong>🚀 CI/CD Integration — ShellCheck</strong></summary>
-
-To automatically lint all shell scripts on push or pull request, add the following GitHub Actions workflow at:
+To automatically check Bash scripts with ShellCheck in a GitHub repository, create the file:
 
 📁 `.github/workflows/shellcheck.yml`
 
