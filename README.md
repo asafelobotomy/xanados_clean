@@ -43,3 +43,13 @@ bash build_appimage.sh
 
 The build script downloads `appimagetool` if necessary and creates a minimal AppDir containing the script, desktop entry, and placeholder icon.
 
+## GitHub Actions
+
+This repository uses several GitHub Actions workflows stored in `.github/workflows`:
+
+- **Markdown Lint** (`markdownlint.yml`) – runs [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) to ensure all `*.md` files follow common style rules.
+- **Proselint** (`proselint.yml`) – checks the prose in our documentation with [proselint](https://github.com/amperser/proselint).
+- **ShellCheck** (`shellcheck.yml`) – lints all shell scripts using [ShellCheck](https://github.com/koalaman/shellcheck).
+- **YAML Lint** (`yamllint.yml`) – validates YAML files with [yamllint](https://github.com/adrienverge/yamllint).
+
+These workflows run automatically on pushes and pull requests to help keep the repository tidy and consistent.
