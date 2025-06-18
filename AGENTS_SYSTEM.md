@@ -1,7 +1,7 @@
 # AGENTS_SYSTEM.md
 
-> **System Maintenance Agents**  
-> *This file documents the system-level agents used by the `system_maint.sh`
+> **System Maintenance Agents**
+> *This file documents the system-level agents used by the `xanadOS_clean.sh`
 script to manage core functionality such as packages, storage, system
 monitoring, and cleanup.*
 
@@ -91,7 +91,7 @@ monitoring, and cleanup.*
 ## Notes
 
 - These agents are considered **essential** for the baseline operation of
-  `system_maint.sh`.
+  `xanadOS_clean.sh`.
 - The script attempts to detect and use each tool. If a tool is missing and
   required, it will prompt for installation or skip the related functionality.
 

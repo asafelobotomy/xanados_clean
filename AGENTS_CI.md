@@ -2,7 +2,7 @@
 
 > **Shell Script Linting & Continuous Integration**  
 > *This file documents the use of ShellCheck for linting and GitHub Actions for
-automated validation of `system_maint.sh`.*
+automated validation of `xanadOS_clean.sh`.*
 
 ---
 
@@ -12,14 +12,14 @@ automated validation of `system_maint.sh`.*
   A static analysis tool for shell scripts. It identifies syntax errors,
   stylistic issues, and unsafe practices in POSIX/Bash scripts.
   *Used to ensure the long-term maintainability and security of*
-  `system_maint.sh`.
+  `xanadOS_clean.sh`.
 
 ### Usage
 
 To manually check your script:
 
 ```bash
-shellcheck system_maint.sh
+shellcheck xanadOS_clean.sh
 ```
 
 ---
