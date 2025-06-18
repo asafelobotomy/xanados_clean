@@ -14,7 +14,7 @@ Arch Linux maintenance. It provides:
 - Security scanning with arch-audit and rkhunter
 - Btrfs maintenance tasks and SSD trimming
 - Checks for failed systemd services and recent journal errors
-- Display of recent Arch news headlines
+- Display of recent Arch news headlines parsed with xmlstarlet
 - System reporting with GPU, firewall, SMART status, and sensors
 - Interactive menu for full or step-by-step maintenance
 

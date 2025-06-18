@@ -31,7 +31,11 @@ summary() {
   log "$1"
 }
 
-trap 'error "Script exited unexpectedly. See log: ${LOG_FILE}"' ERR
+err_trap() {
+  error "Command '$BASH_COMMAND' failed at line ${BASH_LINENO[0]}"
+  exit 1
+}
+trap err_trap ERR
 SUMMARY_LOG=()
 
 # Determine privilege level and configure sudo usage
@@ -174,6 +178,8 @@ dependency_check() {
     [rsync]="Incremental backup"
     [flatpak]="Flatpak support"
     [pacman-contrib]="Pacman helper tools"
+    [curl]="Retrieve web content"
+    [xmlstarlet]="RSS parser"
   )
 
   DISABLED_FEATURES=()
@@ -225,7 +231,7 @@ system_update() {
 flatpak_update() {
   if command -v flatpak &>/dev/null; then
     print_banner "Flatpak Update"
-    flatpak update -y
+    flatpak update --noninteractive -y
     summary "Flatpak packages updated."
   fi
 }
@@ -313,8 +319,10 @@ ssd_trim() {
 
 display_arch_news() {
   print_banner "Arch News"
-  if command -v curl &>/dev/null; then
-    curl -s https://archlinux.org/feeds/news/ | grep -o '<title>[^<]*' | sed 's/<title>//' | sed -n '2,6p'
+  if command -v curl &>/dev/null && command -v xmlstarlet &>/dev/null; then
+    curl -s https://archlinux.org/feeds/news/ \
+      | xmlstarlet sel -t -m '//item/title' -v . -n \
+      | head -n 5
     summary "Latest Arch news displayed."
   fi
 }

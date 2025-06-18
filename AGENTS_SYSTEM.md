@@ -80,8 +80,11 @@ monitoring, and cleanup._
   Updates and ranks Arch mirrorlists by speed and protocol. Ensures fast and
   reliable package downloads.
 
-- **`curl`**  
+- **`curl`**
   Used to retrieve and display recent news from the Arch Linux RSS feed.
+
+- **`xmlstarlet`**
+  Parses RSS feeds to display clean Arch news titles.
 
 ---
 
