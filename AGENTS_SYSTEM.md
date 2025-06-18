@@ -1,9 +1,9 @@
 # AGENTS_SYSTEM.md
 
 > **System Maintenance Agents**  
-> _This file documents the system-level agents used by the `system_maint.sh`
+> *This file documents the system-level agents used by the `system_maint.sh`
 script to manage core functionality such as packages, storage, system
-monitoring, and cleanup._
+monitoring, and cleanup.*
 
 ---
 
@@ -12,12 +12,12 @@ monitoring, and cleanup._
 - **`pacman`**  
   Arch Linux's default package manager. Used to install, upgrade, and remove
   software packages.
-  _Used when `paru` is not installed._
+  *Used when `paru` is not installed.*
 
 - **`paru`**  
   An AUR helper and frontend for `pacman`. Enables seamless access to Arch User
   Repository (AUR) packages.
-  _Preferred if installed. Script prompts to install if missing._
+  *Preferred if installed. Script prompts to install if missing.*
 
 ---
 

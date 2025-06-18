@@ -1,8 +1,8 @@
 # AGENTS_SECURITY.md
 
 > **Security & Backup Agents**  
-> _This file documents the tools used by `system_maint.sh` for vulnerability
-scanning, rootkit detection, firewall auditing, and backup operations._
+> *This file documents the tools used by `system_maint.sh` for vulnerability
+scanning, rootkit detection, firewall auditing, and backup operations.*
 
 ---
 
@@ -11,16 +11,16 @@ scanning, rootkit detection, firewall auditing, and backup operations._
 - **`arch-audit`**  
   A vulnerability scanner that checks installed Arch Linux packages for known
   CVEs (Common Vulnerabilities and Exposures).
-  _Used to flag outdated or insecure software._
+  *Used to flag outdated or insecure software.*
 
 - **`rkhunter`**  
   Rootkit Hunter scans the system for known rootkits, backdoors, and other
   signs of intrusion.
-  _Updates its database and runs a check with log summaries._
+  *Updates its database and runs a check with log summaries.*
 
 - **`ufw`**  
   The Uncomplicated Firewall. Used to check firewall status and rules.  
-  _Only queried if installed._
+  *Only queried if installed.*
 
 ---
 
@@ -29,17 +29,17 @@ scanning, rootkit detection, firewall auditing, and backup operations._
 - **`timeshift`**  
   Creates system snapshots for rollback. Ideal for backing up system states
   before performing risky operations.
-  _Used if installed and available._
+  *Used if installed and available.*
 
 - **`snapper`**  
   Btrfs snapshot manager. An alternative to Timeshift for Btrfs-managed
   systems.
-  _Only used if Timeshift is not available._
+  *Only used if Timeshift is not available.*
 
 - **`rsync`**  
   Performs a full incremental backup of the root filesystem to a specified
   directory.
-  _Optional and manually triggered during script execution._
+  *Optional and manually triggered during script execution.*
 
 ---
 
@@ -47,11 +47,11 @@ scanning, rootkit detection, firewall auditing, and backup operations._
 
 - **`gamemode`**  
   A runtime daemon that optimizes the system for gaming workloads.  
-  _The script checks its status if installed._
+  *The script checks its status if installed.*
 
 - **`nvidia-utils`**  
   Enables `nvidia-smi` for querying NVIDIA GPU status and temperatures.  
-  _Optional; included for systems with NVIDIA GPUs._
+  *Optional; included for systems with NVIDIA GPUs.*
 
 ---
 
