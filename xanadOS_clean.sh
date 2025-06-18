@@ -145,6 +145,16 @@ pkg_mgr_run() {
   fi
 }
 
+# Update a package if a newer version is available
+update_tool_if_outdated() {
+  local pkg=$1
+  if ${PKG_MGR} -Qu "$pkg" >/dev/null 2>&1; then
+    log "Updating $pkg..."
+    pkg_mgr_run -S --noconfirm "$pkg"
+    summary "$pkg updated to latest version."
+  fi
+}
+
 rsync_backup() {
   if command -v rsync &>/dev/null; then
     # Keep destination variable scoped to this function
@@ -324,8 +334,9 @@ security_scan() {
   fi
 
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " rkhunter " ]]; then
+    update_tool_if_outdated rkhunter
     ${SUDO} rkhunter --update
-    if ${SUDO} rkhunter --check --skip-keypress | grep -q Warning; then
+    if ${SUDO} rkhunter --check --skip-keypress --rwo | grep -q Warning; then
       summary "⚠️ rkhunter reported warnings."
     else
       summary "rkhunter scan clean."
