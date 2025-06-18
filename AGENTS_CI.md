@@ -26,5 +26,5 @@ shellcheck system_maint.sh
 
 ## GitHub Actions
 
-This repository includes workflows for ShellCheck, Markdown linting, Proselint,
-and YAML linting.
+This repository uses a single workflow (`lint.yml`) that runs ShellCheck,
+markdownlint, proselint, and yamllint in parallel using a job matrix.

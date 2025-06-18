@@ -57,19 +57,19 @@ AppDir containing the script, desktop entry, and placeholder icon.
 
 ## GitHub Actions
 
-This repository uses several GitHub Actions workflows stored in
-`.github/workflows`:
+This repository uses a single GitHub Actions workflow stored in
+`.github/workflows/lint.yml`.
 
-- **Markdown Lint** (`markdownlint.yml`) – runs
-  [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) with
-  cached npm dependencies to ensure all `*.md` files follow common style rules.
-- **Proselint** (`proselint.yml`) – checks the prose in our documentation with
-  [proselint](https://github.com/amperser/proselint), using pip caching for
-  faster installs.
-- **ShellCheck** (`shellcheck.yml`) – lints all shell scripts using
+The workflow runs multiple linters in parallel using a matrix strategy:
+
+- **markdownlint** – ensures Markdown files follow common style rules using
+  [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2).
+- **proselint** – checks prose in our documentation with
+  [proselint](https://github.com/amperser/proselint).
+- **ShellCheck** – lints all shell scripts using
   [ShellCheck](https://github.com/koalaman/shellcheck).
-- **YAML Lint** (`yamllint.yml`) – validates YAML files with
+- **yamllint** – validates YAML files with
   [yamllint](https://github.com/adrienverge/yamllint).
 
-These workflows run automatically on pushes and pull requests to help keep the
+The workflow runs automatically on pushes and pull requests to keep the
 repository tidy and consistent.
