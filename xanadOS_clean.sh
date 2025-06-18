@@ -41,6 +41,22 @@ err_trap() {
 trap err_trap ERR
 SUMMARY_LOG=()
 
+# Display progress for each maintenance step
+readonly TOTAL_STEPS=15
+CURRENT_STEP=0
+
+show_progress() {
+  local desc=$1
+  ((CURRENT_STEP++))
+  local width=30
+  local filled=$((CURRENT_STEP * width / TOTAL_STEPS))
+  local empty=$((width - filled))
+  local bar
+  bar=$(printf '%0.s#' $(seq 1 "$filled"))
+  bar+=$(printf '%0.s-' $(seq 1 "$empty"))
+  printf '%b[%s] (%d/%d) %s%b\n' "${CYAN}" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS" "$desc" "${NC}"
+}
+
 # Default to interactive mode unless --yes/--auto is provided
 AUTO_MODE=false
 while [[ $# -gt 0 ]]; do
@@ -92,6 +108,7 @@ run_step() {
       return
     fi
   fi
+  show_progress "$desc"
   "$func"
 }
 
