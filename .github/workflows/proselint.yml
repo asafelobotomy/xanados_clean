@@ -12,7 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
       - name: Install proselint
-        run: pip install proselint
+        run: pip install -r requirements.txt
       - name: Run proselint
         run: proselint AGENTS_*.md
