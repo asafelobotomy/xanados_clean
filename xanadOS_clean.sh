@@ -407,9 +407,9 @@ btrfs_maintenance() {
 
 ssd_trim() {
   print_banner "SSD TRIM"
-  mapfile -t ssds < <(lsblk -d -n -o name,rota | awk '$2 == 0 {print "/dev/" $1}')
-  for dev in "${ssds[@]}"; do
-    ${SUDO} fstrim -v "$dev" && summary "SSD TRIM: $dev"
+  mapfile -t ssd_mounts < <(lsblk -rno MOUNTPOINT,ROTA | awk '$1 != "" && $2 == 0 {print $1}')
+  for path in "${ssd_mounts[@]}"; do
+    ${SUDO} fstrim -v "$path" && summary "SSD TRIM: $path"
   done
 }
 
