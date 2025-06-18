@@ -232,10 +232,10 @@ flatpak_update() {
 
 remove_orphans() {
   print_banner "Remove Orphans"
-  orphans=$(${SUDO} pacman -Qtdq 2>/dev/null || true)
-  if [[ -n "${orphans}" ]]; then
-    ${SUDO} pacman -Rns --noconfirm "${orphans}"
-    summary "Removed $(echo "${orphans}" | wc -l) orphaned packages."
+  mapfile -t orphans < <(${SUDO} pacman -Qtdq 2>/dev/null || true)
+  if (( ${#orphans[@]} )); then
+    ${SUDO} pacman -Rns --noconfirm "${orphans[@]}"
+    summary "Removed ${#orphans[@]} orphaned packages."
   else
     summary "No orphan packages found."
   fi
@@ -252,7 +252,7 @@ cache_cleanup() {
     rm -rf ~/.cache/*
     summary "Home cache cleaned."
   fi
-  journalctl --vacuum-time=7d
+  ${SUDO} journalctl --vacuum-time=7d
   summary "Journal logs rotated."
 }
 
@@ -305,7 +305,7 @@ btrfs_maintenance() {
 
 ssd_trim() {
   print_banner "SSD TRIM"
-  mapfile -t ssds < <(lsblk -d -o name,rota | awk '$2 == 0 {print "/dev/" $1}')
+  mapfile -t ssds < <(lsblk -d -n -o name,rota | awk '$2 == 0 {print "/dev/" $1}')
   for dev in "${ssds[@]}"; do
     ${SUDO} fstrim -v "$dev" && summary "SSD TRIM: $dev"
   done
