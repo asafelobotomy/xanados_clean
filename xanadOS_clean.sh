@@ -116,6 +116,13 @@ check_network() {
   ping -c1 -W2 archlinux.org >/dev/null 2>&1
 }
 
+require_pacman() {
+  if ! command -v pacman >/dev/null 2>&1; then
+    error "pacman is required. This script only runs on Arch Linux."
+    exit 1
+  fi
+}
+
 refresh_mirrors() {
   print_banner "Refresh Mirrors"
   if ! check_network; then
@@ -473,6 +480,7 @@ main_menu() {
 }
 
 main() {
+  require_pacman
   print_banner "Arch Maintenance"
   if [[ ${AUTO_MODE} != true ]]; then
     main_menu
