@@ -259,7 +259,10 @@ cache_cleanup() {
   fi
   read -rp $'\nClean ~/.cache directory? [y/N] ' clean_home
   if [[ ${clean_home,,} =~ ^y ]]; then
-    rm -rf ~/.cache/*
+    # Remove all files, including dotfiles, while preventing globbing issues
+    shopt -s dotglob
+    rm -rf -- ~/.cache/*
+    shopt -u dotglob
     summary "Home cache cleaned."
   fi
   ${SUDO} journalctl --vacuum-time=7d
