@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# system_maint.sh — Arch Linux System Maintenance (Gaming + Dev + Security)
+# xanadOS_clean.sh — Arch Linux System Maintenance (Gaming + Dev + Security)
 # Author: Linux Specialist (ChatGPT)
 # Updated: 2025-06-06
 
