@@ -47,7 +47,7 @@ CURRENT_STEP=0
 
 show_progress() {
   local desc=$1
-  ((CURRENT_STEP++))
+  ((++CURRENT_STEP))
   local width=30
   local filled=$((CURRENT_STEP * width / TOTAL_STEPS))
   local empty=$((width - filled))
