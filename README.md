@@ -12,7 +12,7 @@ Arch Linux maintenance. It provides:
   installed, with optional Flatpak updates
 - Orphan package removal and cache cleanup with journal rotation
 - Security scanning with arch-audit and rkhunter
-- Btrfs maintenance tasks and SSD trimming
+- Btrfs maintenance tasks with usage-aware balancing and SSD trimming
 - Checks for failed systemd services and recent journal errors
 - Display of recent Arch news headlines parsed with xmlstarlet
 - System reporting with GPU, firewall, SMART status, and sensors

@@ -120,6 +120,8 @@ pkg_mgr_run() {
 
 rsync_backup() {
   if command -v rsync &>/dev/null; then
+    # Keep destination variable scoped to this function
+    local RSYNC_DIR
     read -rp $'\nDestination path for rsync backup (leave blank to skip): ' RSYNC_DIR
     if [[ -n "${RSYNC_DIR}" ]]; then
       ${SUDO} rsync -aAX --delete --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} / "${RSYNC_DIR}"
@@ -307,7 +309,14 @@ btrfs_maintenance() {
     mapfile -t btrfs_mounts < <(findmnt -t btrfs -n -o TARGET)
     for path in "${btrfs_mounts[@]}"; do
       ${SUDO} btrfs scrub start -Bd "$path"
-      ${SUDO} btrfs balance start -dusage=75 -musage=75 "$path"
+      local used_pct
+      used_pct=$(df --output=pcent "$path" | tail -n1 | tr -dc '0-9')
+      if (( used_pct >= 90 )); then
+        ${SUDO} btrfs balance start -dusage=75 -musage=75 "$path"
+        summary "Btrfs balance run on $path (usage ${used_pct}%)"
+      else
+        summary "Btrfs balance skipped on $path (usage ${used_pct}%)"
+      fi
       ${SUDO} btrfs filesystem defragment -r "$path"
       summary "Btrfs maintenance completed on $path"
     done
