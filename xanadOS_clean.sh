@@ -15,6 +15,9 @@ readonly NC='\033[0m'
 LOG_FILE="${HOME}/Documents/system_maint.log"
 [[ -d "${HOME}/Documents" ]] || LOG_FILE="${HOME}/system_maint.log"
 
+LOG_DIR=$(dirname "${LOG_FILE}")
+mkdir -p "${LOG_DIR}"
+
 exec > >(tee -a "${LOG_FILE}") 2>&1
 echo -e "\n========== SYSTEM MAINTENANCE RUN: $(date) =========="
 
@@ -97,6 +100,7 @@ choose_pkg_manager() {
       ${SUDO} pacman -S --needed --noconfirm base-devel git
       "${USER_CMD[@]}" git clone https://aur.archlinux.org/paru.git /tmp/paru
       (cd /tmp/paru && "${USER_CMD[@]}" makepkg -si --noconfirm)
+      rm -rf /tmp/paru
       PKG_MGR="paru"
       summary "Paru installed and selected."
     else
