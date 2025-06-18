@@ -1,0 +1,58 @@
+name: Linters
+
+on:
+  push:
+    paths: ["**/*.sh", "**/*.md", "**/*.yml", "**/*.yaml"]
+  pull_request:
+    paths: ["**/*.sh", "**/*.md", "**/*.yml", "**/*.yaml"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        linter: [markdownlint, proselint, shellcheck, yamllint]
+    name: ${{ matrix.linter }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node
+        if: matrix.linter == 'markdownlint'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - name: Cache node_modules
+        if: matrix.linter == 'markdownlint'
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+      - run: npm ci
+        if: matrix.linter == 'markdownlint'
+      - run: npx markdownlint-cli2 '**/*.md'
+        if: matrix.linter == 'markdownlint'
+
+      - name: Setup Python
+        if: matrix.linter == 'proselint'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+        if: matrix.linter == 'proselint'
+      - run: proselint AGENTS_*.md
+        if: matrix.linter == 'proselint'
+
+      - name: ShellCheck
+        if: matrix.linter == 'shellcheck'
+        uses: ludeeus/action-shellcheck@master
+
+      - name: Yamllint
+        if: matrix.linter == 'yamllint'
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_file: .yamllint.yml
