@@ -165,10 +165,20 @@ pkg_mgr_run() {
 # Update a package if a newer version is available
 update_tool_if_outdated() {
   local pkg=$1
-  if ${PKG_MGR} -Qu "$pkg" >/dev/null 2>&1; then
-    log "Updating $pkg..."
+  # Check installed and remote versions explicitly to avoid false negatives
+  local current new
+  current=$(pacman -Qi "$pkg" 2>/dev/null | awk '/^Version/{print $3}') || return
+
+  if [[ ${PKG_MGR} == pacman ]]; then
+    new=$(pacman -Si "$pkg" 2>/dev/null | awk '/^Version/{print $3}')
+  else
+    new=$(paru -Si "$pkg" 2>/dev/null | awk '/^Version/{print $3}')
+  fi
+
+  if [[ -n $new && $current != "$new" ]]; then
+    log "Updating $pkg from $current to $new..."
     pkg_mgr_run -S --noconfirm "$pkg"
-    summary "$pkg updated to latest version."
+    summary "$pkg updated to version $new."
   fi
 }
 
