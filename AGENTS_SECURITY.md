@@ -1,7 +1,7 @@
 # AGENTS_SECURITY.md
 
 > **Security & Backup Agents**  
-> *This file documents the tools used by `system_maint.sh` for vulnerability
+> *This file documents the tools used by `xanadOS_clean.sh` for vulnerability
 scanning, rootkit detection, firewall auditing, and backup operations.*
 
 ---

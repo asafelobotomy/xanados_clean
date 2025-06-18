@@ -1,9 +1,9 @@
 # AGENTS Repository Guide
 
 This repository provides documentation and examples for the
-`system_maint.sh` script. The instructions below apply to all contributions.
+`xanadOS_clean.sh` script. The instructions below apply to all contributions.
 
-The repository does not contain the `system_maint.sh` script itself;
+The repository does not contain the `xanadOS_clean.sh` script itself;
 use these files as a reference for your own copy.
 
 ## Documentation Layout
@@ -20,7 +20,7 @@ Refer to these files if you need details about dependencies or CI features.
    (e.g. `Add root AGENTS guide`).
 2. **Include a brief body** if the commit needs more context.
 3. **Run relevant checks** before committing:
-   - If `system_maint.sh` exists, execute `shellcheck system_maint.sh`.
+   - If `xanadOS_clean.sh` exists, execute `shellcheck xanadOS_clean.sh`.
 4. **Open a Pull Request** summarising what changed and what checks were run.
 
 ## Pull Request Body
