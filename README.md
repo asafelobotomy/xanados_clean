@@ -61,10 +61,11 @@ This repository uses several GitHub Actions workflows stored in
 `.github/workflows`:
 
 - **Markdown Lint** (`markdownlint.yml`) – runs
-  [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) to ensure
-  all `*.md` files follow common style rules.
+  [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) with
+  cached npm dependencies to ensure all `*.md` files follow common style rules.
 - **Proselint** (`proselint.yml`) – checks the prose in our documentation with
-  [proselint](https://github.com/amperser/proselint).
+  [proselint](https://github.com/amperser/proselint), using pip caching for
+  faster installs.
 - **ShellCheck** (`shellcheck.yml`) – lints all shell scripts using
   [ShellCheck](https://github.com/koalaman/shellcheck).
 - **YAML Lint** (`yamllint.yml`) – validates YAML files with
