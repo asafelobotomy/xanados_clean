@@ -41,6 +41,20 @@ err_trap() {
 trap err_trap ERR
 SUMMARY_LOG=()
 
+# Default to interactive mode unless --yes/--auto is provided
+AUTO_MODE=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -y|--yes|--auto)
+      AUTO_MODE=true
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
 # Determine privilege level and configure sudo usage
 if (( EUID == 0 )); then
   if [[ -n ${SUDO_USER:-} ]]; then
@@ -81,8 +95,16 @@ run_step() {
   "$func"
 }
 
+check_network() {
+  ping -c1 -W2 archlinux.org >/dev/null 2>&1
+}
+
 refresh_mirrors() {
   print_banner "Refresh Mirrors"
+  if ! check_network; then
+    summary "No network, skipping mirror refresh."
+    return
+  fi
   log "Refreshing mirrorlist before any installs or upgrades..."
   ${SUDO} pacman -Sy --noconfirm reflector
   ${SUDO} reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
@@ -95,17 +117,22 @@ choose_pkg_manager() {
     PKG_MGR="paru"
     summary "Using existing paru for all package operations."
   else
-    read -rp $'\nParu not found. Would you like to install it? [Y/n] ' install_paru
-    if [[ "${install_paru,,}" =~ ^(y|yes)?$ ]]; then
-      ${SUDO} pacman -S --needed --noconfirm base-devel git
-      "${USER_CMD[@]}" git clone https://aur.archlinux.org/paru.git /tmp/paru
-      (cd /tmp/paru && "${USER_CMD[@]}" makepkg -si --noconfirm)
-      rm -rf /tmp/paru
-      PKG_MGR="paru"
-      summary "Paru installed and selected."
-    else
+    if [[ ${AUTO_MODE} == true ]]; then
       PKG_MGR="pacman"
-      summary "Paru declined. Using pacman."
+      summary "Paru not found; using pacman in auto mode."
+    else
+      read -rp $'\nParu not found. Would you like to install it? [Y/n] ' install_paru
+      if [[ "${install_paru,,}" =~ ^(y|yes)?$ ]]; then
+        ${SUDO} pacman -S --needed --noconfirm base-devel git
+        "${USER_CMD[@]}" git clone https://aur.archlinux.org/paru.git /tmp/paru
+        (cd /tmp/paru && "${USER_CMD[@]}" makepkg -si --noconfirm)
+        rm -rf /tmp/paru
+        PKG_MGR="paru"
+        summary "Paru installed and selected."
+      else
+        PKG_MGR="pacman"
+        summary "Paru declined. Using pacman."
+      fi
     fi
   fi
 }
@@ -122,7 +149,11 @@ rsync_backup() {
   if command -v rsync &>/dev/null; then
     # Keep destination variable scoped to this function
     local RSYNC_DIR
-    read -rp $'\nDestination path for rsync backup (leave blank to skip): ' RSYNC_DIR
+    if [[ ${AUTO_MODE} != true ]]; then
+      read -rp $'\nDestination path for rsync backup (leave blank to skip): ' RSYNC_DIR
+    else
+      RSYNC_DIR=""
+    fi
     if [[ -n "${RSYNC_DIR}" ]]; then
       ${SUDO} rsync -aAX --delete --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} / "${RSYNC_DIR}"
       summary "Rsync backup completed to ${RSYNC_DIR}"
@@ -201,23 +232,30 @@ dependency_check() {
     for pkg in "${MISSING_PKGS[@]}"; do
       echo -e "  • $pkg: ${REQUIRED_PKGS[$pkg]}"
     done
-    read -rp $'\nInstall all missing packages? [Y/n] ' install_all
-    if [[ "${install_all,,}" =~ ^(y|yes)?$ ]]; then
+    if [[ ${AUTO_MODE} == true ]]; then
       pkg_mgr_run -S --needed --noconfirm "${MISSING_PKGS[@]}"
       for pkg in "${MISSING_PKGS[@]}"; do
         summary "Installed: $pkg"
       done
     else
-      for pkg in "${MISSING_PKGS[@]}"; do
-        read -rp "Install $pkg? [Y/n] " answer
-        if [[ "${answer,,}" =~ ^(y|yes)?$ ]]; then
-          pkg_mgr_run -S --needed --noconfirm "$pkg"
+      read -rp $'\nInstall all missing packages? [Y/n] ' install_all
+      if [[ "${install_all,,}" =~ ^(y|yes)?$ ]]; then
+        pkg_mgr_run -S --needed --noconfirm "${MISSING_PKGS[@]}"
+        for pkg in "${MISSING_PKGS[@]}"; do
           summary "Installed: $pkg"
-        else
-          DISABLED_FEATURES+=("$pkg")
-          summary "⚠️ Skipped: $pkg"
-        fi
-      done
+        done
+      else
+        for pkg in "${MISSING_PKGS[@]}"; do
+          read -rp "Install $pkg? [Y/n] " answer
+          if [[ "${answer,,}" =~ ^(y|yes)?$ ]]; then
+            pkg_mgr_run -S --needed --noconfirm "$pkg"
+            summary "Installed: $pkg"
+          else
+            DISABLED_FEATURES+=("$pkg")
+            summary "⚠️ Skipped: $pkg"
+          fi
+        done
+      fi
     fi
   else
     summary "All required packages are present."
@@ -259,7 +297,11 @@ cache_cleanup() {
     ${SUDO} paccache -r
     summary "Pacman cache cleaned."
   fi
-  read -rp $'\nClean ~/.cache directory? [y/N] ' clean_home
+  if [[ ${AUTO_MODE} != true ]]; then
+    read -rp $'\nClean ~/.cache directory? [y/N] ' clean_home
+  else
+    clean_home=""
+  fi
   if [[ ${clean_home,,} =~ ^y ]]; then
     # Remove all files, including dotfiles, while preventing globbing issues
     shopt -s dotglob
@@ -335,6 +377,10 @@ ssd_trim() {
 
 display_arch_news() {
   print_banner "Arch News"
+  if ! check_network; then
+    summary "No network, skipping Arch news."
+    return
+  fi
   if command -v curl &>/dev/null && command -v xmlstarlet &>/dev/null; then
     curl -s https://archlinux.org/feeds/news/ \
       | xmlstarlet sel -t -m '//item/title' -v . -n \
@@ -376,7 +422,11 @@ final_summary() {
 
 main_menu() {
   echo -e "\n1) Full maintenance\n2) Custom selection\n0) Exit"
-  read -rp "Select option [1]: " choice
+  if [[ ${AUTO_MODE} != true ]]; then
+    read -rp "Select option [1]: " choice
+  else
+    choice="1"
+  fi
   case "$choice" in
     0) exit 0 ;;
     2) ASK_EACH=true ;;
@@ -386,7 +436,11 @@ main_menu() {
 
 main() {
   print_banner "Arch Maintenance"
-  main_menu
+  if [[ ${AUTO_MODE} != true ]]; then
+    main_menu
+  else
+    ASK_EACH=false
+  fi
   run_step refresh_mirrors "Refresh Mirrors"
   run_step choose_pkg_manager "Package Manager Setup"
   run_step pre_backup "System Backup"
