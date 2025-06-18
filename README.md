@@ -17,6 +17,7 @@ Arch Linux maintenance. It provides:
 - Display of recent Arch news headlines parsed with xmlstarlet
 - System reporting with GPU, firewall, SMART status, and sensors
 - Interactive menu for full or step-by-step maintenance
+- `--auto` flag for unattended execution
 
 ## Usage
 
@@ -24,6 +25,12 @@ Run the script directly:
 
 ```bash
 bash xanadOS_clean.sh
+```
+
+For unattended runs, use the `--auto` flag:
+
+```bash
+bash xanadOS_clean.sh --auto
 ```
 
 Run it as a normal user with sudo privileges. Executing the script as root will
