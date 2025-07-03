@@ -1,10 +1,11 @@
 # AGENTS Repository Guide
 
 This repository provides documentation and examples for the
-`xanadOS_clean.sh` script. The instructions below apply to all contributions.
+system maintenance scripts `archlinux_clean.sh` and `bazzite_clean.sh`.
+The instructions below apply to all contributions.
 
-The repository does not contain the `xanadOS_clean.sh` script itself;
-use these files as a reference for your own copy.
+The repository does not contain a unified `xanadOS_clean.sh` script;
+use these files as references for your own copies.
 
 ## Documentation Layout
 
@@ -20,7 +21,8 @@ Refer to these files if you need details about dependencies or CI features.
    (e.g. `Add root AGENTS guide`).
 2. **Include a brief body** if the commit needs more context.
 3. **Run relevant checks** before committing:
-   - If `xanadOS_clean.sh` exists, execute `shellcheck xanadOS_clean.sh`.
+   - If `archlinux_clean.sh` or `bazzite_clean.sh` exist, run `shellcheck` on
+     them.
 4. **Open a Pull Request** summarising what changed and what checks were run.
 
 ## Pull Request Body

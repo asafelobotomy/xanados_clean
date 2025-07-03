@@ -1,8 +1,8 @@
 # AGENTS_CI.md
 
-> **Shell Script Linting & Continuous Integration**  
+> **Shell Script Linting & Continuous Integration**
 > *This file documents the use of ShellCheck for linting and GitHub Actions for
-automated validation of `xanadOS_clean.sh`.*
+automated validation of the maintenance scripts.*
 
 ---
 
@@ -11,15 +11,16 @@ automated validation of `xanadOS_clean.sh`.*
 - **`shellcheck`**  
   A static analysis tool for shell scripts. It identifies syntax errors,
   stylistic issues, and unsafe practices in POSIX/Bash scripts.
-  *Used to ensure the long-term maintainability and security of*
-  `xanadOS_clean.sh`.
+  *Used to ensure the long-term maintainability and security of the
+  maintenance scripts.*
 
 ### Usage
 
 To manually check your script:
 
 ```bash
-shellcheck xanadOS_clean.sh
+shellcheck archlinux_clean.sh
+shellcheck bazzite_clean.sh
 ```
 
 ---
