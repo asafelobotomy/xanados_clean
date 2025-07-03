@@ -4,6 +4,7 @@ set -euo pipefail
 APP=xanadOS_clean
 VERSION=1.0
 APPDIR="${APP}.AppDir"
+SCRIPT=${1:-archlinux_clean.sh}
 APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
 APPIMAGETOOL_SHA256="b90f4a8b18967545fda78a445b27680a1642f1ef9488ced28b65398f2be7add2"
 
@@ -22,7 +23,7 @@ download_appimagetool() {
 
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin"
-cp xanadOS_clean.sh "$APPDIR/usr/bin/$APP"
+cp "$SCRIPT" "$APPDIR/usr/bin/$APP"
 chmod +x "$APPDIR/usr/bin/$APP"
 
 cat > "$APPDIR/$APP.desktop" <<DESK

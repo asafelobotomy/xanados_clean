@@ -1,17 +1,18 @@
 # AGENTS_SECURITY.md
 
-> **Security & Backup Agents**  
-> *This file documents the tools used by `xanadOS_clean.sh` for vulnerability
-scanning, rootkit detection, firewall auditing, and backup operations.*
+> **Security & Backup Agents**
+> *This file documents the tools used by the maintenance scripts for
+vulnerability scanning, rootkit detection, firewall auditing, and backup
+operations.*
 
 ---
 
 ## 🛡️ Security & Auditing Tools
 
-- **`arch-audit`**  
+- **`arch-audit`** (Arch only)
   A vulnerability scanner that checks installed Arch Linux packages for known
   CVEs (Common Vulnerabilities and Exposures).
-  *Used to flag outdated or insecure software.*
+  *Used to flag outdated or insecure software when running the Arch variant.*
 
 - **`rkhunter`**  
   Rootkit Hunter scans the system for known rootkits, backdoors, and other

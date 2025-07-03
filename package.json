@@ -1,7 +1,7 @@
 {
   "name": "xanados_clean",
   "version": "1.0.0",
-  "description": "This repository contains `xanadOS_clean.sh`, a comprehensive Bash script for Arch Linux maintenance. It provides:",
+  "description": "Example maintenance scripts for Arch and Fedora/Bazzite systems.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
