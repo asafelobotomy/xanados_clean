@@ -44,6 +44,10 @@ SUMMARY_LOG=()
 # Display progress for each maintenance step
 readonly TOTAL_STEPS=14
 CURRENT_STEP=0
+USE_RPM_OSTREE=false
+if command -v rpm-ostree >/dev/null 2>&1; then
+  USE_RPM_OSTREE=true
+fi
 
 show_progress() {
   local desc=$1
@@ -128,20 +132,33 @@ refresh_repos() {
     return
   fi
   log "Refreshing repository metadata before any installs or upgrades..."
-  ${SUDO} dnf makecache --refresh -y
+  if [[ ${USE_RPM_OSTREE} == true ]]; then
+    ${SUDO} rpm-ostree upgrade --check
+  else
+    ${SUDO} dnf makecache --refresh -y
+  fi
   summary "Repository metadata refreshed."
 }
 
 pkg_mgr_run() {
-  ${SUDO} dnf "$@"
+  if [[ ${USE_RPM_OSTREE} == true ]]; then
+    ${SUDO} rpm-ostree install --assume-yes "$@"
+  else
+    ${SUDO} dnf "$@"
+  fi
 }
 
 # Update a package if a newer version is available
 update_tool_if_outdated() {
   local pkg=$1
-  if ${SUDO} dnf list --installed "$pkg" &>/dev/null; then
-    ${SUDO} dnf upgrade -y "$pkg"
-    summary "$pkg checked for updates."
+  if [[ ${USE_RPM_OSTREE} == true ]]; then
+    ${SUDO} rpm-ostree install --assume-yes "$pkg"
+    summary "$pkg layered or updated."
+  else
+    if ${SUDO} dnf list --installed "$pkg" &>/dev/null; then
+      ${SUDO} dnf upgrade -y "$pkg"
+      summary "$pkg checked for updates."
+    fi
   fi
 }
 
@@ -231,11 +248,16 @@ dependency_check() {
     for pkg in "${MISSING_PKGS[@]}"; do
       echo -e "  • $pkg: ${REQUIRED_PKGS[$pkg]}"
     done
+    if [[ ${USE_RPM_OSTREE} == true ]]; then
+      echo -e "\nLayering packages via rpm-ostree may require a reboot and is discouraged for routine software."
+      echo "See https://docs.bazzite.gg/Installing_and_Managing_Software/ for details."
+    fi
     if [[ ${AUTO_MODE} == true ]]; then
       pkg_mgr_run install -y "${MISSING_PKGS[@]}"
       for pkg in "${MISSING_PKGS[@]}"; do
         summary "Installed: $pkg"
       done
+      [[ ${USE_RPM_OSTREE} == true ]] && summary "Reboot required to apply layered packages."
     else
       read -rp $'\nInstall all missing packages? [Y/n] ' install_all
       if [[ "${install_all,,}" =~ ^(y|yes)?$ ]]; then
@@ -243,12 +265,14 @@ dependency_check() {
         for pkg in "${MISSING_PKGS[@]}"; do
           summary "Installed: $pkg"
         done
+        [[ ${USE_RPM_OSTREE} == true ]] && summary "Reboot required to apply layered packages."
       else
         for pkg in "${MISSING_PKGS[@]}"; do
           read -rp "Install $pkg? [Y/n] " answer
           if [[ "${answer,,}" =~ ^(y|yes)?$ ]]; then
             pkg_mgr_run install -y "$pkg"
             summary "Installed: $pkg"
+            [[ ${USE_RPM_OSTREE} == true ]] && summary "Reboot required to apply layered package $pkg."
           else
             DISABLED_FEATURES+=("$pkg")
             summary "⚠️ Skipped: $pkg"
@@ -281,13 +305,23 @@ flatpak_update() {
 
 remove_orphans() {
   print_banner "Remove Orphans"
-  ${SUDO} dnf autoremove -y && summary "Orphaned packages removed."
+  if [[ ${USE_RPM_OSTREE} == true ]]; then
+    ${SUDO} rpm-ostree cleanup --pending
+    summary "Old rpm-ostree deployments cleaned."
+  else
+    ${SUDO} dnf autoremove -y && summary "Orphaned packages removed."
+  fi
 }
 
 cache_cleanup() {
   print_banner "Cache Cleanup"
-  ${SUDO} dnf clean all
-  summary "DNF cache cleaned."
+  if [[ ${USE_RPM_OSTREE} == true ]]; then
+    ${SUDO} rpm-ostree cleanup -m
+    summary "rpm-ostree cache cleaned."
+  else
+    ${SUDO} dnf clean all
+    summary "DNF cache cleaned."
+  fi
   if [[ ${AUTO_MODE} != true ]]; then
     read -rp $'\nClean ~/.cache directory? [y/N] ' clean_home
   else
@@ -306,10 +340,14 @@ cache_cleanup() {
 
 security_scan() {
   print_banner "Security Scan"
-  if ${SUDO} dnf updateinfo list --security | grep -q "\bImportant\b\|\bCritical\b"; then
-    summary "⚠️ Security updates available."
+  if [[ ${USE_RPM_OSTREE} == true ]]; then
+    summary "Security updates handled via rpm-ostree."
   else
-    summary "No security updates pending."
+    if ${SUDO} dnf updateinfo list --security | grep -q "\bImportant\b\|\bCritical\b"; then
+      summary "⚠️ Security updates available."
+    else
+      summary "No security updates pending."
+    fi
   fi
 
   if [[ ! " ${DISABLED_FEATURES[*]} " =~ " rkhunter " ]]; then
