@@ -84,7 +84,7 @@ class XanadosGUI:
                        variable=self.auto_mode).grid(row=0, column=0, sticky=tk.W, padx=(0, 20))
         ttk.Checkbutton(options_frame, text="Simple Mode", 
                        variable=self.simple_mode).grid(row=0, column=1, sticky=tk.W)
-        ttk.Checkbutton(options_frame, text="Dry Run (Preview only)", 
+        ttk.Checkbutton(options_frame, text="Test Mode (Preview only)", 
                        variable=self.dry_run).grid(row=1, column=0, sticky=tk.W, padx=(0, 20))
         ttk.Checkbutton(options_frame, text="Verbose Output", 
                        variable=self.verbose).grid(row=1, column=1, sticky=tk.W)
@@ -141,7 +141,7 @@ class XanadosGUI:
         if self.simple_mode.get():
             cmd.append("--simple")
         if self.dry_run.get():
-            cmd.append("--dry-run")
+            cmd.append("--test-mode")
         if self.verbose.get():
             cmd.append("--verbose")
             
@@ -159,7 +159,7 @@ class XanadosGUI:
                 "Running as root user. This is potentially dangerous. Continue?"):
                 return
         
-        # Warn if not in dry-run mode
+        # Warn if not in test mode
         if not self.dry_run.get():
             if not messagebox.askyesno("Warning", 
                 "You are about to run maintenance operations that will make actual changes to your system.\n\n"
@@ -167,6 +167,7 @@ class XanadosGUI:
                 "• Installing/updating packages\n"
                 "• Modifying system configuration\n"
                 "• Cleaning caches and logs\n\n"
+                "Consider using Test Mode first to preview changes.\n\n"
                 "Are you sure you want to continue?"):
                 return
         
