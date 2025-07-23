@@ -54,22 +54,41 @@ check_pacman_lock() {
         
         if [[ $wait_time -ge $max_wait ]]; then
             error "Pacman has been locked for more than ${max_wait} seconds"
-            error "Please ensure no other package operations are running and try again"
+            error "Database lock file: $lock_file"
             if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+                echo ""
+                echo "⚠️  This usually means another package manager is running (pamac, yay, etc.)"
+                echo "   If you're sure no other package operations are active, you can remove the lock."
+                echo ""
                 echo "Options:"
                 echo "  1. Wait longer (another 30 seconds)"
-                echo "  2. Force remove lock (potentially dangerous)"
+                echo "  2. Remove pacman database lock file"
                 echo "  3. Skip package operations"
+                echo ""
                 read -rp "Choose an option [1-3]: " choice
                 case $choice in
-                    1) max_wait=$((max_wait + 30)) ;;
+                    1) 
+                        log "Waiting another 30 seconds for lock release..."
+                        max_wait=$((max_wait + 30)) 
+                        ;;
                     2) 
-                        log "Attempting to remove pacman lock (forced)"
-                        ${SUDO} rm -f "$lock_file" 2>/dev/null || true
+                        warning "Removing pacman database lock file: $lock_file"
+                        if ${SUDO} rm -f "$lock_file" 2>/dev/null; then
+                            success "Lock file removed successfully"
+                        else
+                            error "Failed to remove lock file - check permissions"
+                            return 1
+                        fi
                         break
                         ;;
-                    3) return 1 ;;
-                    *) return 1 ;;
+                    3) 
+                        log "Skipping package operations due to lock"
+                        return 1 
+                        ;;
+                    *) 
+                        warning "Invalid choice, skipping package operations"
+                        return 1 
+                        ;;
                 esac
             else
                 return 1
@@ -79,6 +98,55 @@ check_pacman_lock() {
         sleep 2
         wait_time=$((wait_time + 2))
     done
+    
+    return 0
+}
+
+# Proactively check for stale pacman lock files
+check_stale_pacman_lock() {
+    local lock_file="/var/lib/pacman/db.lck"
+    
+    if [[ -f "$lock_file" ]]; then
+        # Check if the lock is actually stale
+        local lock_age
+        lock_age=$(( $(date +%s) - $(stat -c %Y "$lock_file" 2>/dev/null || echo 0) ))
+        
+        # If lock is older than 5 minutes, consider it potentially stale
+        if [[ $lock_age -gt 300 ]]; then
+            warning "Found potentially stale pacman lock file (${lock_age}s old)"
+            
+            # Check if any pacman processes are actually running
+            if ! pgrep -x "pacman\|pamac\|yay\|paru" >/dev/null 2>&1; then
+                if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+                    echo ""
+                    echo "🔍 No active package manager processes detected."
+                    echo "   The lock file appears to be stale (orphaned)."
+                    echo ""
+                    read -rp "Remove the stale lock file? [y/N]: " -n 1 remove_lock
+                    echo ""
+                    
+                    if [[ "$remove_lock" =~ ^[Yy]$ ]]; then
+                        if ${SUDO} rm -f "$lock_file" 2>/dev/null; then
+                            success "Stale lock file removed successfully"
+                            return 0
+                        else
+                            error "Failed to remove stale lock file"
+                            return 1
+                        fi
+                    else
+                        log "Keeping lock file as requested"
+                        return 1
+                    fi
+                else
+                    warning "Stale lock detected in auto mode - not removing automatically"
+                    return 1
+                fi
+            else
+                log "Active package manager processes found - lock is not stale"
+                return 1
+            fi
+        fi
+    fi
     
     return 0
 }

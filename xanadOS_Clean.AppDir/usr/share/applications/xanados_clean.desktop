@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=xanadOS Clean
+Comment=Professional Arch Linux system maintenance tool
+Exec=xanados_clean %f
+Icon=xanados_clean
+Categories=System;Settings;
+Keywords=system;maintenance;cleanup;arch;linux;
+Terminal=false
+StartupNotify=true

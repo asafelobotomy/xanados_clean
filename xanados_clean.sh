@@ -148,6 +148,11 @@ main() {
   # Parse command line arguments
   parse_arguments "$@"
   
+  # Check for stale pacman lock files early (unless in test mode)
+  if [[ "${TEST_MODE:-false}" != "true" ]] && command -v check_stale_pacman_lock >/dev/null 2>&1; then
+    check_stale_pacman_lock
+  fi
+  
   # Handle simple mode early to bypass complex initialization
   if [[ "${SIMPLE_MODE:-false}" == "true" ]]; then
     require_pacman
