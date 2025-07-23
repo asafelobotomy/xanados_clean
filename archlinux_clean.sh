@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # archlinux_clean.sh — Arch Linux System Maintenance (Gaming + Dev + Security)
-# Author: Linux Specialist (ChatGPT)
+# Author: Co-Pilot (Claude Sonnet 4)
 # Updated: 2025-07-23
 # Version: 2.0.0
 
@@ -24,6 +24,12 @@ if [[ -f "$SCRIPT_DIR/lib/config.sh" ]]; then
 elif [[ -f "$SCRIPT_DIR/lib/enhancements.sh" ]]; then
     # shellcheck source=lib/enhancements.sh
     source "$SCRIPT_DIR/lib/enhancements.sh"
+fi
+
+# Load Arch Linux optimizations library
+if [[ -f "$SCRIPT_DIR/lib/arch_optimizations.sh" ]]; then
+    # shellcheck source=lib/arch_optimizations.sh
+    source "$SCRIPT_DIR/lib/arch_optimizations.sh"
 fi
 
 # Set defaults if not loaded by configuration system
@@ -606,6 +612,12 @@ main() {
   fi
   
   # Run maintenance steps with enhanced execution
+  
+  # Apply latest Arch Linux optimizations first
+  if [[ "${ENABLE_ARCH_OPTIMIZATIONS:-true}" == "true" ]] && command -v run_arch_optimizations >/dev/null 2>&1; then
+    run_step run_arch_optimizations "Arch Linux Optimizations"
+  fi
+  
   if [[ "${UPDATE_MIRRORS:-true}" == "true" ]]; then
     run_step refresh_mirrors "Refresh Mirrors"
   fi
