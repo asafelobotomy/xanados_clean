@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP=xanadOS_clean
-VERSION=1.0
+APP=xanadOS_archclean
+VERSION=2.0
 APPDIR="${APP}.AppDir"
 SCRIPT=${1:-archlinux_clean.sh}
 APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
@@ -29,21 +29,22 @@ chmod +x "$APPDIR/usr/bin/$APP"
 cat > "$APPDIR/$APP.desktop" <<DESK
 [Desktop Entry]
 Type=Application
-Name=XanadOS Clean
+Name=XanadOS Arch Cleanup
 Exec=$APP
 Icon=$APP
-Categories=System;
+Categories=System;Utility;
+Comment=Professional Arch Linux maintenance automation
 DESK
 
 # placeholder icon
-ICON_URL="https://via.placeholder.com/256.png?text=XanadOS"
+ICON_URL="https://via.placeholder.com/256.png?text=ArchClean"
 check_network
 wget -q -O "$APPDIR/$APP.png" "$ICON_URL"
 
 cat > "$APPDIR/AppRun" <<'RUN'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
-exec "$HERE/usr/bin/xanadOS_clean" "$@"
+exec "$HERE/usr/bin/xanadOS_archclean" "$@"
 RUN
 chmod +x "$APPDIR/AppRun"
 

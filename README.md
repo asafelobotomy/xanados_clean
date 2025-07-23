@@ -1,23 +1,20 @@
-# xanadOS Clean
+# xanadOS Clean - Arch Linux System Maintenance
 
-**Version 2.0.0** - Enhanced Linux system maintenance toolkit with configuration management, error recovery, and comprehensive testing.
+**Version 2.0.0** - Professional-grade maintenance automation for Arch Linux systems with configuration management, error recovery, and comprehensive testing.
 
-This repository contains professional-grade maintenance scripts for Linux systems with support for:
-
-- **`archlinux_clean.sh`** – for Arch-based systems (Arch Linux, Manjaro, EndeavourOS)
-- **`bazzite_clean.sh`** – for Fedora/Bazzite systems (Fedora, Silverblue, Kinoite, Bazzite)
+This repository provides a comprehensive system maintenance script designed specifically for Arch Linux and its derivatives (Manjaro, EndeavourOS, etc.). The script combines package management, security scanning, backup operations, and system optimization into a single, reliable maintenance workflow.
 
 ## ✨ Key Features
 
 ### Core Functionality
 
-- **Smart Package Management**: Automatic package updates with AUR helper support
-- **Intelligent Mirroring**: Optimized repository mirrors for faster downloads
-- **Multi-Backup Support**: Timeshift, Snapper, or rsync backup options
-- **Security Scanning**: rkhunter, arch-audit, and vulnerability assessment
+- **Smart Package Management**: Automatic package updates with AUR helper support (paru/yay)
+- **Intelligent Mirroring**: Optimized repository mirrors for faster downloads with reflector
+- **Multi-Backup Support**: Timeshift, Snapper, or rsync backup options with smart scheduling
+- **Security Scanning**: rkhunter and arch-audit vulnerability assessment
 - **Filesystem Maintenance**: Btrfs optimization and SSD TRIM support
 - **System Monitoring**: Failed services detection and journal error analysis
-- **Distribution News**: Latest updates from Arch and Fedora newsfeeds
+- **Arch News**: Latest updates from Arch Linux newsfeeds
 
 ### Enhanced Features (v2.0)
 
@@ -32,14 +29,14 @@ This repository contains professional-grade maintenance scripts for Linux system
 
 ### Basic Usage
 
-Run the script for your distribution:
+Run the maintenance script:
 
 ```bash
-# For Arch-based systems
+# Basic interactive mode
 ./archlinux_clean.sh
 
-# For Fedora/Bazzite
-./bazzite_clean.sh
+# Automatic mode (non-interactive)
+./archlinux_clean.sh --auto
 ```
 
 ### Command Line Options
@@ -142,11 +139,12 @@ Logs are stored in `~/Documents/system_maint.log` by default.
 ```text
 xanados_clean/
 ├── archlinux_clean.sh      # Main Arch maintenance script
-├── bazzite_clean.sh        # Main Fedora/Bazzite maintenance script
 ├── build_appimage.sh       # AppImage packaging script
 ├── lib/                    # Shared libraries
 │   ├── config.sh          # Configuration management
-│   └── recovery.sh        # Error recovery system
+│   ├── recovery.sh        # Error recovery system
+│   ├── performance.sh     # Performance monitoring
+│   └── enhancements.sh    # Integration layer
 ├── config/                 # Configuration files
 │   └── default.conf       # Default configuration template
 ├── tests/                  # Test suite

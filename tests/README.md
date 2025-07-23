@@ -13,11 +13,6 @@ The xanadOS Clean test suite uses BATS (Bash Automated Testing System) to provid
 sudo pacman -S bats
 ```
 
-**Fedora/RHEL:**
-```bash
-sudo dnf install bats
-```
-
 **From Source:**
 ```bash
 git clone https://github.com/bats-core/bats-core.git
@@ -30,7 +25,6 @@ sudo ./install.sh /usr/local
 ```bash
 # Required for news parsing tests
 sudo pacman -S xmlstarlet curl  # Arch
-sudo dnf install xmlstarlet curl  # Fedora
 ```
 
 ## Running Tests
@@ -46,7 +40,6 @@ cd tests
 
 ```bash
 ./run_tests.sh test_archlinux_clean.bats
-./run_tests.sh test_bazzite_clean.bats
 ./run_tests.sh test_build_appimage.bats
 ```
 
@@ -61,7 +54,6 @@ bats -f "require_pacman should pass" test_archlinux_clean.bats
 ### Test Files
 
 - `test_archlinux_clean.bats` - Tests for Arch Linux maintenance script
-- `test_bazzite_clean.bats` - Tests for Fedora/Bazzite maintenance script  
 - `test_build_appimage.bats` - Tests for AppImage build script
 - `setup_suite.bash` - Common test setup and utilities
 

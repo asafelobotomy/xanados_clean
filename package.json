@@ -1,11 +1,10 @@
 {
   "name": "xanados_clean",
   "version": "2.0.0",
-  "description": "Enhanced maintenance scripts for Arch and Fedora/Bazzite systems with configuration management, testing, and error recovery.",
+  "description": "Professional-grade maintenance automation for Arch Linux systems with configuration management, testing, and error recovery.",
   "scripts": {
     "test": "cd tests && ./run_tests.sh",
     "test:arch": "cd tests && ./run_tests.sh test_archlinux_clean.bats",
-    "test:bazzite": "cd tests && ./run_tests.sh test_bazzite_clean.bats",
     "test:build": "cd tests && ./run_tests.sh test_build_appimage.bats",
     "lint:md": "markdownlint-cli2 '**/*.md'",
     "lint:sh": "shellcheck *.sh lib/*.sh tests/*.bash",
@@ -15,16 +14,17 @@
     "config": "echo 'Run ./archlinux_clean.sh --create-config to create default config'"
   },
   "keywords": [
+    "archlinux",
+    "arch",
     "linux",
     "maintenance",
-    "archlinux",
-    "fedora",
-    "bazzite",
     "system-administration",
     "automation",
     "package-management",
     "security",
-    "backup"
+    "backup",
+    "pacman",
+    "aur"
   ],
   "author": "Linux Specialist (ChatGPT)",
   "license": "GPL-3.0",

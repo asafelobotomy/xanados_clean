@@ -1,4 +1,4 @@
-# xanadOS Clean API Documentation
+# xanadOS Arch Cleanup API Documentation
 
 ## Core Functions
 
@@ -9,12 +9,6 @@
 **Parameters**: None  
 **Returns**: 0 on success, 1 if pacman not found  
 **Usage**: Called at script startup to ensure Arch Linux environment
-
-#### `require_dnf()`
-**Purpose**: Validates that dnf package manager is available  
-**Parameters**: None  
-**Returns**: 0 on success, 1 if dnf not found  
-**Usage**: Called at script startup to ensure Fedora environment
 
 #### `check_network()`
 **Purpose**: Tests network connectivity  
@@ -86,23 +80,11 @@
 **Dependencies**: reflector, network connectivity  
 **Usage**: Called before system updates
 
-#### `refresh_repos()` (Fedora)
-**Purpose**: Refreshes package repository metadata  
-**Parameters**: None  
-**Returns**: 0 on success  
-**Dependencies**: dnf/rpm-ostree, network connectivity
-
 #### `system_update()`
 **Purpose**: Performs full system package update  
 **Parameters**: None  
 **Returns**: 0 on success  
-**Behavior**: Updates all packages using appropriate package manager
-
-#### `flatpak_update()`
-**Purpose**: Updates Flatpak applications  
-**Parameters**: None  
-**Returns**: 0 on success, skips if Flatpak not installed  
-**Configuration**: Controlled by `ENABLE_FLATPAK` setting
+**Behavior**: Updates all packages using pacman/paru
 
 #### `remove_orphans()`
 **Purpose**: Removes orphaned packages no longer needed  
@@ -192,7 +174,7 @@
 
 ### News and Information
 
-#### `display_arch_news()` / `display_fedora_news()`
+#### `display_arch_news()`
 **Purpose**: Shows recent distribution news  
 **Parameters**: None  
 **Returns**: 0 on success  
@@ -272,14 +254,13 @@ All functions use consistent error handling:
 ## Dependencies
 
 ### Required Commands
-- `pacman` (Arch) or `dnf` (Fedora)
+- `pacman` (Arch Linux package manager)
 - `sudo`
 - Basic POSIX utilities (grep, awk, sed, etc.)
 
 ### Optional Commands
 - `paru` or `yay` (AUR helpers)
 - `timeshift` or `snapper` (backup tools)
-- `flatpak` (application updates)
 - `rkhunter` (security scanning)
 - `arch-audit` (Arch security)
 - `btrfs` (filesystem maintenance)

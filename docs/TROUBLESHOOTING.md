@@ -4,17 +4,12 @@
 
 ### Installation and Setup Issues
 
-#### "pacman is required" or "dnf is required"
+#### "pacman is required"
 
-**Problem**: Script exits with message that package manager is not found.
-
+**Cause**: Script running on non-Arch Linux system  
 **Solution**:
-
-- Ensure you're running the correct script for your distribution:
-  - Use `archlinux_clean.sh` on Arch Linux and derivatives
-  - Use `bazzite_clean.sh` on Fedora, Bazzite, and derivatives
-- Verify your system has the required package manager installed
-- Check that the package manager is in your PATH
+  - Use this script only on Arch Linux and derivatives
+  - Ensure you're running on a supported system
 
 #### "Please run this script as a regular user with sudo access"
 
@@ -311,7 +306,7 @@ uname -a
 lsb_release -a 2>/dev/null || cat /etc/os-release
 
 # Package manager version
-pacman --version || dnf --version
+pacman --version
 
 # Disk space
 df -h
@@ -328,7 +323,7 @@ journalctl -p err -n 20
 When reporting problems, include:
 
 1. Operating system and version
-2. Script version and which script (archlinux_clean.sh or bazzite_clean.sh)
+2. Script version (archlinux_clean.sh v2.0)
 3. Complete error messages
 4. Relevant log file entries
 5. System configuration details

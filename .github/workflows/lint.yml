@@ -61,7 +61,7 @@ jobs:
         
       - name: Run proselint
         if: matrix.linter == 'proselint'
-        run: proselint AGENTS_*.md docs/*.md
+        run: proselint docs/*.md
 
       - name: Run ShellCheck
         if: matrix.linter == 'shellcheck'
@@ -115,12 +115,6 @@ jobs:
     if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[security]')
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Run Bandit security scan
-        uses: securecodewarrior/github-action-bandit@v1
-        with:
-          # Skip since we're scanning shell scripts, not Python
-          recursive: false
           
       - name: Run Semgrep security scan
         uses: returntocorp/semgrep-action@v1
@@ -140,27 +134,15 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os_type: [arch, fedora]
-    name: Integration Test (${{ matrix.os_type }})
+    name: Integration Test (Arch Linux)
     needs: [lint, test]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
       
       - name: Test Arch script syntax
-        if: matrix.os_type == 'arch'
         run: |
           bash -n archlinux_clean.sh
-          # Test configuration loading
-          source lib/config.sh
-          echo "Configuration system loads successfully"
-          
-      - name: Test Fedora script syntax
-        if: matrix.os_type == 'fedora'
-        run: |
-          bash -n bazzite_clean.sh
           # Test configuration loading
           source lib/config.sh
           echo "Configuration system loads successfully"
@@ -169,6 +151,11 @@ jobs:
         run: |
           bash -n build_appimage.sh
           echo "AppImage build script syntax OK"
+          
+      - name: Test library integration
+        run: |
+          source lib/enhancements.sh
+          echo "Enhancement libraries load successfully"
 
   release:
     runs-on: ubuntu-latest
@@ -199,7 +186,6 @@ jobs:
           files: |
             xanadOS_clean-*.AppImage
             archlinux_clean.sh
-            bazzite_clean.sh
           body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
