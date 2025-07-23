@@ -38,6 +38,11 @@ if [[ -f "$SCRIPT_DIR/lib/extensions.sh" ]]; then
     source "$SCRIPT_DIR/lib/extensions.sh"
 fi
 
+# Initialize variables
+PKG_MGR=""
+SIMPLE_MODE="${SIMPLE_MODE:-false}"
+TEST_MODE="${TEST_MODE:-false}"
+
 # Set defaults if not loaded by configuration system
 LOG_FILE="${LOG_FILE:-${HOME}/Documents/system_maint.log}"
 AUTO_MODE="${AUTO_MODE:-false}"
@@ -96,7 +101,13 @@ final_summary() {
 }
 
 main_menu() {
-  echo -e "\n1) Full maintenance\n2) Custom selection\n0) Exit"
+  # Skip menu in simple mode
+  if [[ "${SIMPLE_MODE:-false}" == "true" ]]; then
+    ASK_EACH=false
+    return
+  fi
+  
+  echo -e "\n1) Full maintenance\n2) Custom selection\n3) Simple mode\n0) Exit"
   if [[ ${AUTO_MODE} != true ]]; then
     read -rp "Select option [1]: " choice
   else
@@ -105,15 +116,54 @@ main_menu() {
   case "$choice" in
     0) exit 0 ;;
     2) ASK_EACH=true ;;
+    3) SIMPLE_MODE=true; ASK_EACH=false ;;
     *) ASK_EACH=false ;;
   esac
+}
+
+# Simple mode - basic maintenance only (like arch-cleaner)
+run_simple_maintenance() {
+  print_banner "Simple Mode - Basic Maintenance"
+  log "Running basic maintenance operations..."
+  
+  # Essential operations only - use simple run_step to avoid complications
+  choose_pkg_manager
+  run_step system_update "System Update"
+  run_step remove_orphans "Remove Orphans" 
+  run_step cache_cleanup "Cache Cleanup"
+  run_step check_failed_services "Service Check"
+  
+  # Simple summary
+  print_banner "Simple Maintenance Complete"
+  log "Basic maintenance completed: $(date)"
+  printf '%b' "${CYAN}\nOperations completed:\n${NC}"
+  printf "  • System packages updated\n"
+  printf "  • Orphaned packages removed\n" 
+  printf "  • Package cache cleaned\n"
+  printf "  • Failed services checked\n"
+  printf '%b\n' "${BLUE}[✓] Simple maintenance completed successfully.${NC}"
 }
 
 main() {
   # Parse command line arguments
   parse_arguments "$@"
   
-  # Enhanced initialization with all systems
+  # Handle simple mode early to bypass complex initialization
+  if [[ "${SIMPLE_MODE:-false}" == "true" ]]; then
+    require_pacman
+    print_banner "Arch Maintenance v2.0"
+    
+    # Check for test mode
+    if [[ "${TEST_MODE:-false}" == "true" ]]; then
+      log "Running in test mode - no actual changes will be made"
+      SUDO="echo sudo"
+    fi
+    
+    run_simple_maintenance
+    return
+  fi
+  
+  # Enhanced initialization with all systems for full mode
   local resumed=false
   if command -v enhanced_init >/dev/null 2>&1; then
     if enhanced_init; then

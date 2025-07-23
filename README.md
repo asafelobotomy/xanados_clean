@@ -36,7 +36,23 @@ This repository provides a comprehensive system maintenance script designed spec
 
 ## Quick Start
 
-### Installation
+### Easy Installation
+
+**Option 1: Automated Installation (Recommended)**
+
+```bash
+git clone https://github.com/asafelobotomy/xanados_clean.git
+cd xanados_clean
+./install.sh
+```
+
+This will:
+- Install xanadOS Clean system-wide
+- Create symlinks for easy access
+- Set up systemd automation (optional)
+- Configure both full and simple modes
+
+**Option 2: Manual Installation**
 
 1. Clone the repository:
 
@@ -55,6 +71,46 @@ This repository provides a comprehensive system maintenance script designed spec
    # Automatic mode
    ./xanados_clean.sh --auto
    ```
+
+### Usage Modes
+
+xanadOS Clean offers multiple modes to suit different user needs:
+
+#### 🔧 Full Mode (Default)
+Complete maintenance with all advanced features:
+```bash
+xanados-clean                    # Interactive
+xanados-clean --auto             # Automatic
+```
+- Full package management (pacman + AUR)
+- Security scanning (rkhunter, arch-audit)
+- Performance monitoring
+- Backup operations
+- System reporting
+- Error recovery
+
+#### 🚀 Simple Mode (New!)
+Basic maintenance for casual users (like arch-cleaner):
+```bash
+xanados-clean --simple           # Installed version
+./xanados_clean.sh --simple      # Local version
+```
+- System package updates
+- Orphaned package removal
+- Cache cleanup
+- Service status check
+- Fast execution (~2-3 minutes)
+
+#### 🏢 Automated Mode
+System-wide automation via systemd:
+```bash
+# Set up during installation
+./install.sh
+
+# Manual timer management
+systemctl --user enable xanados-clean.timer
+systemctl --user start xanados-clean.timer
+```
 
 ### Command Line Options
 

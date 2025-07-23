@@ -124,6 +124,11 @@ parse_arguments() {
             -a|--auto)
                 AUTO_MODE=true
                 ;;
+            -s|--simple)
+                SIMPLE_MODE=true
+                AUTO_MODE=true
+                log "Running in simple mode - basic maintenance only"
+                ;;
             -t|--test-mode)
                 TEST_MODE=true
                 log "Running in test mode - no actual changes will be made"
@@ -189,6 +194,7 @@ OPTIONS:
     -h, --help              Show this help message
     -v, --version           Show version information
     -a, --auto              Run in automatic mode (non-interactive)
+    -s, --simple            Simple mode - basic maintenance only (auto-enabled)
     -t, --test-mode         Dry-run mode (no actual changes)
     --ask-each             Prompt before each maintenance step
     --config FILE          Use custom configuration file
@@ -200,6 +206,7 @@ OPTIONS:
 EXAMPLES:
     $0                     # Interactive mode
     $0 --auto              # Automatic mode
+    $0 --simple            # Simple mode (basic maintenance)
     $0 --config ~/.my.conf # Use custom config
     $0 --test-mode         # Dry run to see what would be done
 
