@@ -6,13 +6,14 @@
 # Set up variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAIN_SCRIPT="${SCRIPT_DIR}/../xanados_clean.sh"
-TEMP_DIR="/tmp/xanados_clean_$$"
+# Use secure temporary directory creation
+TEMP_DIR=$(mktemp -d -t xanados_clean.XXXXXX)
 OUTPUT_FILE="${TEMP_DIR}/output.log"
 PROGRESS_FILE="${TEMP_DIR}/progress.txt"
 PID_FILE="${TEMP_DIR}/maintenance.pid"
 
-# Create temp directory
-mkdir -p "$TEMP_DIR"
+# Create temp directory (already created by mktemp)
+# mkdir -p "$TEMP_DIR" # Not needed with mktemp -d
 
 # Cleanup function
 cleanup() {

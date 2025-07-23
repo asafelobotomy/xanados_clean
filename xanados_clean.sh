@@ -3,6 +3,7 @@
 # Author: Co-Pilot (Claude Sonnet 4)
 # Updated: 2025-07-23
 # Version: 2.0.0
+# Security: Enhanced with secure temporary files, SSL/TLS validation, and input sanitization
 
 set -euo pipefail
 IFS=$'\n\t'

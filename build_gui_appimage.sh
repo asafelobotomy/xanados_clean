@@ -9,7 +9,8 @@ APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/cont
 APPIMAGETOOL_SHA256="b90f4a8b18967545fda78a445b27680a1642f1ef9488ced28b65398f2be7add2"
 
 check_network() {
-  if ! curl -fsI https://github.com >/dev/null; then
+  # Use secure curl options for network check
+  if ! curl --fail --show-error --location --tlsv1.2 --silent --head https://github.com >/dev/null; then
     echo "Error: network unavailable" >&2
     exit 1
   fi
@@ -19,16 +20,17 @@ download_appimagetool() {
   if [[ ! -f appimagetool ]]; then
     echo "Downloading appimagetool..."
     
-    # Try the releases API to get the latest download URL
-    LATEST_URL=$(curl -s "https://api.github.com/repos/AppImage/AppImageKit/releases/latest" | \
+    # Try the releases API to get the latest download URL with secure curl
+    LATEST_URL=$(curl --fail --show-error --location --tlsv1.2 --silent \
+                      "https://api.github.com/repos/AppImage/AppImageKit/releases/latest" | \
                  grep -o '"browser_download_url": "[^"]*appimagetool-x86_64.AppImage"' | \
                  cut -d'"' -f4 | head -1)
     
     if [[ -n "$LATEST_URL" ]]; then
-      curl -L "$LATEST_URL" -o appimagetool
+      curl --fail --show-error --location --tlsv1.2 "$LATEST_URL" -o appimagetool
     else
       # Fallback to the continuous build
-      curl -L "$APPIMAGETOOL_URL" -o appimagetool
+      curl --fail --show-error --location --tlsv1.2 "$APPIMAGETOOL_URL" -o appimagetool
     fi
     
     # Make executable without checksum verification for now
@@ -132,7 +134,8 @@ create_icon() {
     # Download placeholder icon if custom icon doesn't exist
     ICON_URL="https://via.placeholder.com/256/1793D1/FFFFFF?text=XC"
     check_network
-    wget -q -O "$APPDIR/${APP}.png" "$ICON_URL" || {
+    # Use secure curl instead of wget
+    curl --fail --show-error --location --tlsv1.2 --silent -o "$APPDIR/${APP}.png" "$ICON_URL" || {
       # Create a simple fallback icon
       echo "Creating fallback icon..."
       cat > "$APPDIR/${APP}.svg" <<'SVG'

@@ -4,7 +4,8 @@
 
 # Advanced pacman optimizations
 configure_pacman_optimizations() {
-    local backup_suffix=".backup-$(date +%Y%m%d)"
+    local backup_suffix
+    backup_suffix=".backup-$(date +%Y%m%d)"
     
     if [[ -f /etc/pacman.conf ]]; then
         sudo cp /etc/pacman.conf "/etc/pacman.conf${backup_suffix}"
@@ -209,7 +210,8 @@ optimize_system_performance() {
     
     # Enable transparent hugepages for better memory management
     if [[ -f /sys/kernel/mm/transparent_hugepage/enabled ]]; then
-        local thp_setting=$(cat /sys/kernel/mm/transparent_hugepage/enabled)
+        local thp_setting
+        thp_setting=$(cat /sys/kernel/mm/transparent_hugepage/enabled)
         if [[ ! "$thp_setting" =~ \[madvise\] ]]; then
             echo madvise | sudo tee /sys/kernel/mm/transparent_hugepage/enabled >/dev/null 2>&1 || true
             log "Configured transparent hugepages"

@@ -115,8 +115,28 @@ check_stale_pacman_lock() {
         if [[ $lock_age -gt 300 ]]; then
             warning "Found potentially stale pacman lock file (${lock_age}s old)"
             
-            # Check if any pacman processes are actually running
-            if ! pgrep -x "pacman\|pamac\|yay\|paru" >/dev/null 2>&1; then
+            # Enhanced check for pacman processes - more comprehensive
+            # Check both process names and file locks
+            local pacman_running=false
+            
+            # Check for running package manager processes
+            if pgrep -x "pacman\|pamac\|yay\|paru" >/dev/null 2>&1; then
+                pacman_running=true
+            fi
+            
+            # Also check if any process has the database lock file open
+            if command -v fuser >/dev/null 2>&1; then
+                if fuser "$lock_file" >/dev/null 2>&1; then
+                    pacman_running=true
+                fi
+            fi
+            
+            # Check for any pacman-related processes in a broader way
+            if pgrep -f "pacman\|pamac\|yay\|paru" >/dev/null 2>&1; then
+                pacman_running=true
+            fi
+            
+            if [[ "$pacman_running" == "false" ]]; then
                 if [[ "${AUTO_MODE:-false}" != "true" ]]; then
                     echo ""
                     echo "🔍 No active package manager processes detected."
@@ -318,7 +338,8 @@ run_custom_script() {
 
 # Advanced pacman optimizations
 configure_pacman_optimizations() {
-    local backup_suffix=".backup-$(date +%Y%m%d)"
+    local backup_suffix
+    backup_suffix=".backup-$(date +%Y%m%d)"
     
     if [[ -f /etc/pacman.conf ]]; then
         ${SUDO} cp /etc/pacman.conf "/etc/pacman.conf${backup_suffix}"
@@ -378,7 +399,8 @@ create_news_checker() {
 #!/bin/bash
 # Simple Arch Linux news checker
 NEWS_URL="https://archlinux.org/feeds/news/"
-CACHE_FILE="/tmp/arch-news-cache"
+# Use secure temporary file for cache instead of predictable location
+CACHE_FILE=$(mktemp -t arch-news-cache.XXXXXX)
 LAST_CHECK_FILE="$HOME/.arch-news-last-check"
 
 # Get current timestamp
@@ -395,10 +417,12 @@ if [[ -f "$LAST_CHECK_FILE" ]]; then
     fi
 fi
 
-# Fetch and display recent news
+# Fetch and display recent news with secure SSL/TLS
 if command -v curl >/dev/null; then
     echo "Checking for recent Arch Linux news..."
-    curl -s "$NEWS_URL" | grep -o '<title>[^<]*</title>' | head -5 | sed 's/<[^>]*>//g'
+    # Use secure curl options: fail on error, show errors, follow redirects, require TLS 1.2+
+    curl --fail --show-error --location --tlsv1.2 --silent "$NEWS_URL" | \
+        grep -o '<title>[^<]*</title>' | head -5 | sed 's/<[^>]*>//g'
     echo "Visit https://archlinux.org/news/ for full details"
     echo "$CURRENT_TIME" > "$LAST_CHECK_FILE"
 fi
