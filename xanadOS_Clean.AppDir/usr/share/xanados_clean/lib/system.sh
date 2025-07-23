@@ -390,13 +390,18 @@ check_drive_health() {
 analyze_memory_usage() {
     log "Analyzing memory usage"
     
-    local total_mem used_mem available_mem
+    local total_mem used_mem
     local mem_info
-    mem_info=$(free -m | awk 'NR==2{print $2 " " $3 " " $7}')
-    read -r total_mem used_mem available_mem <<< "$mem_info"
+    mem_info=$(free -m | awk 'NR==2{print $2 " " $3}')
+    
+    # Use array to safely parse the output
+    local mem_array
+    read -ra mem_array <<< "$mem_info"
+    total_mem=${mem_array[0]:-0}
+    used_mem=${mem_array[1]:-0}
     
     # Validate that we got numeric values
-    if ! [[ "$total_mem" =~ ^[0-9]+$ ]] || ! [[ "$used_mem" =~ ^[0-9]+$ ]]; then
+    if ! [[ "$total_mem" =~ ^[0-9]+$ ]] || ! [[ "$used_mem" =~ ^[0-9]+$ ]] || [[ "$total_mem" -eq 0 ]]; then
         warning "Could not parse memory information"
         return 1
     fi

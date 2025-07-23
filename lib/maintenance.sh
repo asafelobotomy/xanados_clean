@@ -3,7 +3,7 @@
 # Combines: config.sh + arch_optimizations.sh functionality
 
 # Configuration file search paths (in order of priority)
-if [[ -z "${CONFIG_PATHS:-}" ]]; then
+if ! declare -p CONFIG_PATHS >/dev/null 2>&1; then
     readonly CONFIG_PATHS=(
         "${XDG_CONFIG_HOME:-$HOME/.config}/xanados_clean/config.conf"
         "${HOME}/.xanados_clean.conf"
@@ -38,6 +38,63 @@ load_config() {
     
     # Validate and set defaults for critical variables
     validate_config
+}
+
+# Check if pacman is locked and wait or handle appropriately
+check_pacman_lock() {
+    local lock_file="/var/lib/pacman/db.lck"
+    local max_wait=30
+    local wait_time=0
+    
+    while [[ -f "$lock_file" ]]; do
+        if [[ $wait_time -eq 0 ]]; then
+            warning "Pacman is currently locked by another process"
+            log "Waiting for pacman lock to be released..."
+        fi
+        
+        if [[ $wait_time -ge $max_wait ]]; then
+            error "Pacman has been locked for more than ${max_wait} seconds"
+            error "Please ensure no other package operations are running and try again"
+            if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+                echo "Options:"
+                echo "  1. Wait longer (another 30 seconds)"
+                echo "  2. Force remove lock (potentially dangerous)"
+                echo "  3. Skip package operations"
+                read -rp "Choose an option [1-3]: " choice
+                case $choice in
+                    1) max_wait=$((max_wait + 30)) ;;
+                    2) 
+                        log "Attempting to remove pacman lock (forced)"
+                        ${SUDO} rm -f "$lock_file" 2>/dev/null || true
+                        break
+                        ;;
+                    3) return 1 ;;
+                    *) return 1 ;;
+                esac
+            else
+                return 1
+            fi
+        fi
+        
+        sleep 2
+        wait_time=$((wait_time + 2))
+    done
+    
+    return 0
+}
+
+# Run command with timeout to prevent hanging
+run_with_timeout() {
+    local timeout_duration="$1"
+    shift
+    local cmd=("$@")
+    
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$timeout_duration" "${cmd[@]}"
+    else
+        # Fallback without timeout if command not available
+        "${cmd[@]}"
+    fi
 }
 
 # Validate configuration values and set defaults
@@ -544,20 +601,45 @@ refresh_mirrors() {
         summary "No network, skipping mirror refresh."
         return
     fi
+    
+    # Check for pacman lock before proceeding
+    if ! check_pacman_lock; then
+        warning "Skipping mirror refresh due to pacman lock"
+        return 1
+    fi
+    
     log "Refreshing mirrorlist before any installs or upgrades..."
-    ${SUDO} pacman -Sy --noconfirm reflector
+    if ! run_with_timeout 120 ${SUDO} pacman -Sy --noconfirm reflector; then
+        warning "Reflector installation timed out, using existing mirrors"
+    fi
     optimize_mirrors
-    ${SUDO} pacman -Sy --noconfirm
+    if ! run_with_timeout 60 ${SUDO} pacman -Sy --noconfirm; then
+        warning "Mirror refresh timed out, continuing with existing mirrors"
+    fi
     summary "Package mirrors refreshed and optimized."
 }
 
 # System package update
 system_update() {
     print_banner "System Update"
+    
+    # Check for pacman lock before proceeding
+    if ! check_pacman_lock; then
+        warning "Skipping system update due to pacman lock"
+        return 1
+    fi
+    
+    log "Starting system update with timeout protection..."
     if [[ ${PKG_MGR} == pacman ]]; then
-        ${SUDO} pacman -Syu --noconfirm
+        if ! run_with_timeout 300 ${SUDO} pacman -Syu --noconfirm; then
+            warning "System update timed out or failed, continuing with other operations"
+            return 1
+        fi
     else
-        pkg_mgr_run -Syu --noconfirm
+        if ! run_with_timeout 300 pkg_mgr_run -Syu --noconfirm; then
+            warning "System update timed out or failed, continuing with other operations"
+            return 1
+        fi
     fi
     summary "System packages updated."
 }

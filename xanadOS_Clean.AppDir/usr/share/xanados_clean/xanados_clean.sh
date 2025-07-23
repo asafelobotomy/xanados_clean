@@ -158,7 +158,7 @@ main() {
     # Check for test mode
     if [[ "${TEST_MODE:-false}" == "true" ]]; then
       log "Running in test mode - no actual changes will be made"
-      SUDO="echo sudo"
+      SUDO="echo [TEST-MODE]"
     fi
     
     run_simple_maintenance
@@ -189,7 +189,7 @@ main() {
   # Check for test mode
   if [[ "${TEST_MODE:-false}" == "true" ]]; then
     log "Running in test mode - no actual changes will be made"
-    SUDO="echo sudo"
+    SUDO="echo [TEST-MODE]"
   fi
   
   # Skip menu if resuming from checkpoint

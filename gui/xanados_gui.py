@@ -132,6 +132,20 @@ class XanadosGUI:
             self.output_text.insert(tk.END, f"Found maintenance script at {self.script_path}\n")
             self.output_text.insert(tk.END, "Ready to run system maintenance.\n\n")
     
+    def check_pacman_lock(self):
+        """Check if pacman is currently locked"""
+        lock_file = Path("/var/lib/pacman/db.lck")
+        if lock_file.exists():
+            result = messagebox.askyesno(
+                "Pacman Lock Detected",
+                "Pacman is currently locked by another process.\n\n"
+                "This usually means another package operation is running.\n"
+                "Continue anyway? (May cause the operation to hang)",
+                icon="warning"
+            )
+            return result
+        return True
+    
     def build_command(self):
         """Build the command to execute"""
         cmd = [str(self.script_path)]
@@ -151,6 +165,10 @@ class XanadosGUI:
         """Run the maintenance script in a separate thread"""
         if not self.script_path.exists():
             messagebox.showerror("Error", "Maintenance script not found!")
+            return
+        
+        # Check for pacman lock unless in test mode
+        if not self.dry_run.get() and not self.check_pacman_lock():
             return
             
         # Check if running as non-root user for safety

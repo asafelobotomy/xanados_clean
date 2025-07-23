@@ -514,7 +514,18 @@ generate_performance_report() {
     local total_memory_delta=$((end_memory - SYSTEM_METRICS[start_memory]))
     
     printf "\n%b=== Performance Report ===%b\n" "$BLUE" "$NC"
-    printf "Total execution time: %d seconds (%.1f minutes)\n" "$total_time" "$(echo "$total_time / 60" | bc -l 2>/dev/null || echo "N/A")"
+    
+    # Calculate minutes with proper fallback
+    local minutes
+    if command -v bc >/dev/null 2>&1; then
+        minutes=$(echo "scale=1; $total_time / 60" | bc -l 2>/dev/null || echo "0.0")
+    else
+        # Fallback calculation using bash arithmetic
+        minutes=$((total_time * 10 / 60))
+        minutes="${minutes%?}.${minutes: -1}"
+    fi
+    
+    printf "Total execution time: %d seconds (%s minutes)\n" "$total_time" "$minutes"
     printf "Memory usage change: %+d MB\n" "$total_memory_delta"
     
     # Step-by-step performance
