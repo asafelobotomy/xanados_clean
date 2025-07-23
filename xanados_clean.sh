@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# archlinux_clean.sh — Arch Linux System Maintenance (Gaming + Dev + Security)
+# xanados_clean.sh — xanadOS Arch Linux System Maintenance (Gaming + Dev + Security)
 # Author: Co-Pilot (Claude Sonnet 4)
 # Updated: 2025-07-23
 # Version: 2.0.0

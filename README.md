@@ -42,32 +42,32 @@ Run the maintenance script:
 
 ```bash
 # Basic interactive mode
-./archlinux_clean.sh
+./xanados_clean.sh
 
 # Automatic mode (non-interactive)
-./archlinux_clean.sh --auto
+./xanados_clean.sh --auto
 ```
 
 ### Command Line Options
 
 ```bash
 # Show help
-./archlinux_clean.sh --help
+./xanados_clean.sh --help
 
 # Run automatically (non-interactive)
-./archlinux_clean.sh --auto
+./xanados_clean.sh --auto
 
 # Use custom configuration
-./archlinux_clean.sh --config ~/.my-config.conf
+./xanados_clean.sh --config ~/.my-config.conf
 
 # Show current configuration
-./archlinux_clean.sh --show-config
+./xanados_clean.sh --show-config
 
 # Create default configuration file
-./archlinux_clean.sh --create-config
+./xanados_clean.sh --create-config
 
 # Test mode (dry run)
-./archlinux_clean.sh --test-mode
+./xanados_clean.sh --test-mode
 ```
 
 ### Configuration
@@ -76,7 +76,7 @@ Create a personalized configuration:
 
 ```bash
 # Create default config in ~/.config/xanados_clean/
-./archlinux_clean.sh --create-config
+./xanados_clean.sh --create-config
 
 # Edit the configuration
 nano ~/.config/xanados_clean/config.conf
@@ -120,7 +120,7 @@ Run the comprehensive test suite:
 cd tests && ./run_tests.sh
 
 # Run specific test suite
-./tests/run_tests.sh test_archlinux_clean.bats
+./tests/run_tests.sh test_xanados_clean.bats
 ```
 
 Logs are stored in `~/Documents/system_maint.log` by default.
@@ -147,7 +147,7 @@ Logs are stored in `~/Documents/system_maint.log` by default.
 
 ```text
 xanados_clean/
-├── archlinux_clean.sh      # Main Arch maintenance script
+├── xanados_clean.sh        # Main Arch maintenance script
 ├── build_appimage.sh       # AppImage packaging script
 ├── lib/                    # Shared libraries
 │   ├── config.sh          # Configuration management

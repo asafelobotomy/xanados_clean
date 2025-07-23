@@ -75,7 +75,7 @@ The project has been successfully refactored from a multi-distribution Linux mai
 - **Comprehensive Documentation**: Full API and troubleshooting guides
 
 ### ✅ Core Functionality
-- **archlinux_clean.sh**: Enhanced v2.0 with all improvements
+- **xanados_clean.sh**: Enhanced v2.0 with all improvements
 - **Library Integration**: Config, enhancements, recovery systems
 - **Advanced Features**: Backup validation, security scanning, Btrfs optimization
 - **Professional Workflow**: Argument parsing, logging, progress tracking
@@ -103,7 +103,7 @@ The project has been successfully refactored from a multi-distribution Linux mai
 ## Migration Guide for Users
 
 ### For Arch Linux Users
-- **No Changes Required**: Continue using `archlinux_clean.sh`
+- **No Changes Required**: Continue using `xanados_clean.sh`
 - **Enhanced Experience**: Benefit from v2.0 improvements
 - **Better Performance**: Optimized for Arch-specific workflows
 

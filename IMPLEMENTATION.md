@@ -11,7 +11,7 @@
 - **CI Integration**: Automated testing in GitHub Actions
 - **Files Created**:
   - `tests/setup_suite.bash` - Test framework setup
-  - `tests/test_archlinux_clean.bats` - Arch Linux tests
+  - `tests/test_xanados_clean.bats` - Arch Linux tests
   - `tests/test_bazzite_clean.bats` - Fedora/Bazzite tests
   - `tests/test_build_appimage.bats` - AppImage build tests
   - `tests/run_tests.sh` - Test runner script
@@ -73,7 +73,7 @@
 - **Custom Configuration**: `--config` flag support
 - **Integration Layer**: Seamless enhancement loading
 - **Files Enhanced**:
-  - `archlinux_clean.sh` - Enhanced with v2.0 features
+  - `xanados_clean.sh` - Enhanced with v2.0 features
   - `bazzite_clean.sh` - Enhanced with v2.0 features
   - `lib/enhancements.sh` - Integration layer
 
@@ -106,7 +106,7 @@ xanados_clean/
 │   ├── API.md             # API documentation (400 lines)
 │   └── TROUBLESHOOTING.md # Troubleshooting (300 lines)
 ├── CHANGELOG.md            # NEW: Version history (200 lines)
-├── archlinux_clean.sh      # ENHANCED: v2.0 features added
+├── xanados_clean.sh        # ENHANCED: v2.0 features added
 ├── bazzite_clean.sh        # ENHANCED: v2.0 features added
 ├── package.json            # ENHANCED: New scripts and metadata
 └── .github/workflows/lint.yml # ENHANCED: Full CI/CD pipeline

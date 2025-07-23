@@ -113,11 +113,11 @@
 #### New Command Line Options
 ```bash
 # New in v2.0
-./archlinux_clean.sh --help           # Show help
-./archlinux_clean.sh --version        # Show version
-./archlinux_clean.sh --show-config    # Display config
-./archlinux_clean.sh --create-config  # Create config
-./archlinux_clean.sh --test-mode      # Dry run
+./xanados_clean.sh --help           # Show help
+./xanados_clean.sh --version        # Show version
+./xanados_clean.sh --show-config    # Display config
+./xanados_clean.sh --create-config  # Create config
+./xanados_clean.sh --test-mode      # Dry run
 ```
 
 ### 🐛 Bug Fixes

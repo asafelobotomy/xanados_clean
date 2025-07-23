@@ -17,7 +17,7 @@
 
 **Solution**:
 
-- Run the script as a regular user: `./archlinux_clean.sh`
+- Run the script as a regular user: `./xanados_clean.sh`
 - Ensure your user has sudo privileges: `sudo -v`
 - Do not use `su` to switch to root before running
 
@@ -279,7 +279,7 @@ Enable debug mode for verbose output:
 DEBUG_MODE=true
 
 # Or set environment variable
-DEBUG_MODE=true ./archlinux_clean.sh
+DEBUG_MODE=true ./xanados_clean.sh
 ```
 
 ### Log Analysis
@@ -323,7 +323,7 @@ journalctl -p err -n 20
 When reporting problems, include:
 
 1. Operating system and version
-2. Script version (archlinux_clean.sh v2.0)
+2. Script version (xanados_clean.sh v2.0)
 3. Complete error messages
 4. Relevant log file entries
 5. System configuration details

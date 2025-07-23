@@ -39,21 +39,21 @@ cd tests
 ### Run Specific Test Files
 
 ```bash
-./run_tests.sh test_archlinux_clean.bats
+./run_tests.sh test_xanados_clean.bats
 ./run_tests.sh test_build_appimage.bats
 ```
 
 ### Run Individual Tests
 
 ```bash
-bats -f "require_pacman should pass" test_archlinux_clean.bats
+bats -f "require_pacman should pass" test_xanados_clean.bats
 ```
 
 ## Test Structure
 
 ### Test Files
 
-- `test_archlinux_clean.bats` - Tests for Arch Linux maintenance script
+- `test_xanados_clean.bats` - Tests for Arch Linux maintenance script
 - `test_build_appimage.bats` - Tests for AppImage build script
 - `setup_suite.bash` - Common test setup and utilities
 
@@ -111,7 +111,7 @@ create_mock_command "pacman" 0 "pacman 6.0.1"
 Loads script functions for testing:
 
 ```bash
-source_script_functions "$PROJECT_ROOT/archlinux_clean.sh"
+source_script_functions "$PROJECT_ROOT/xanados_clean.sh"
 ```
 
 ### Test Assertions
@@ -208,7 +208,7 @@ source tests/setup_suite.bash
 setup_suite
 
 # Run individual functions
-source_script_functions "archlinux_clean.sh"
+source_script_functions "xanados_clean.sh"
 create_mock_command "pacman" 0 "test output"
 
 # Test functions interactively

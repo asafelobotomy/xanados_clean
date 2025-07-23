@@ -142,7 +142,7 @@ jobs:
       
       - name: Test Arch script syntax
         run: |
-          bash -n archlinux_clean.sh
+          bash -n xanados_clean.sh
           # Test configuration loading
           source lib/config.sh
           echo "Configuration system loads successfully"
@@ -177,7 +177,7 @@ jobs:
       - name: Create AppImage
         run: |
           chmod +x build_appimage.sh
-          ./build_appimage.sh archlinux_clean.sh
+          ./build_appimage.sh xanados_clean.sh
           
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -185,7 +185,7 @@ jobs:
         with:
           files: |
             xanadOS_clean-*.AppImage
-            archlinux_clean.sh
+            xanados_clean.sh
           body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

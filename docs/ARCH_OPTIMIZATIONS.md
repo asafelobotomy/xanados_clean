@@ -193,7 +193,7 @@ pacman -Qk                       # Verifies package integrity
 
 ### Technical Architecture
 ```
-archlinux_clean.sh
+xanados_clean.sh
 ├── lib/arch_optimizations.sh    # New optimization functions
 ├── lib/config.sh                # Extended configuration system
 ├── lib/enhancements.sh          # Existing enhancement framework
