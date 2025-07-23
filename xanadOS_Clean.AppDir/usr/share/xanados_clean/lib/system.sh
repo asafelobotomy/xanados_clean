@@ -391,7 +391,15 @@ analyze_memory_usage() {
     log "Analyzing memory usage"
     
     local total_mem used_mem available_mem
-    read -r total_mem used_mem available_mem < <(free -m | awk 'NR==2{print $2, $3, $7}')
+    local mem_info
+    mem_info=$(free -m | awk 'NR==2{print $2 " " $3 " " $7}')
+    read -r total_mem used_mem available_mem <<< "$mem_info"
+    
+    # Validate that we got numeric values
+    if ! [[ "$total_mem" =~ ^[0-9]+$ ]] || ! [[ "$used_mem" =~ ^[0-9]+$ ]]; then
+        warning "Could not parse memory information"
+        return 1
+    fi
     
     local usage_percent=$((used_mem * 100 / total_mem))
     

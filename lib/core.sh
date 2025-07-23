@@ -420,3 +420,6 @@ export -f run_step parse_arguments show_help show_version
 export -f final_summary check_command is_root has_sudo
 export -f setup_package_manager choose_pkg_manager pkg_mgr_run
 export -f init_core_systems create_default_config
+
+# Export variables
+export SUDO PKG_MGR

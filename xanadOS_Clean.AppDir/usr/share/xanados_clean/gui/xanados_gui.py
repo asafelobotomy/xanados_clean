@@ -77,7 +77,7 @@ class XanadosGUI:
         # Maintenance options
         self.auto_mode = tk.BooleanVar(value=True)
         self.simple_mode = tk.BooleanVar(value=False)
-        self.dry_run = tk.BooleanVar(value=False)
+        self.dry_run = tk.BooleanVar(value=True)  # Default to dry-run for safety
         self.verbose = tk.BooleanVar(value=False)
         
         ttk.Checkbutton(options_frame, text="Auto Mode (Recommended)", 
@@ -157,6 +157,17 @@ class XanadosGUI:
         if os.geteuid() == 0:
             if not messagebox.askyesno("Warning", 
                 "Running as root user. This is potentially dangerous. Continue?"):
+                return
+        
+        # Warn if not in dry-run mode
+        if not self.dry_run.get():
+            if not messagebox.askyesno("Warning", 
+                "You are about to run maintenance operations that will make actual changes to your system.\n\n"
+                "This may include:\n"
+                "• Installing/updating packages\n"
+                "• Modifying system configuration\n"
+                "• Cleaning caches and logs\n\n"
+                "Are you sure you want to continue?"):
                 return
         
         # Disable run button and enable stop button

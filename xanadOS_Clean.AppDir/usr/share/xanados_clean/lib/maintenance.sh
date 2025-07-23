@@ -3,12 +3,14 @@
 # Combines: config.sh + arch_optimizations.sh functionality
 
 # Configuration file search paths (in order of priority)
-readonly CONFIG_PATHS=(
-    "${XDG_CONFIG_HOME:-$HOME/.config}/xanados_clean/config.conf"
-    "${HOME}/.xanados_clean.conf"
-    "/etc/xanados_clean/config.conf"
-    "${SCRIPT_DIR:-}/config/default.conf"
-)
+if [[ -z "${CONFIG_PATHS:-}" ]]; then
+    readonly CONFIG_PATHS=(
+        "${XDG_CONFIG_HOME:-$HOME/.config}/xanados_clean/config.conf"
+        "${HOME}/.xanados_clean.conf"
+        "/etc/xanados_clean/config.conf"
+        "${SCRIPT_DIR:-}/config/default.conf"
+    )
+fi
 
 # Load configuration from the first found config file
 load_config() {
