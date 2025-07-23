@@ -1,0 +1,15 @@
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "$0")")"
+
+# Set up environment
+export APPDIR="$HERE"
+export PATH="$HERE/usr/bin:$PATH"
+
+# Check if GUI should be launched (default behavior)
+if [[ $# -eq 0 ]] || [[ "$1" == "--gui" ]]; then
+    # Launch GUI by default
+    exec "$HERE/usr/bin/xanados_gui" "${@:2}"
+else
+    # Launch command line version for other arguments
+    exec "$HERE/usr/bin/xanados_clean.sh" "$@"
+fi
