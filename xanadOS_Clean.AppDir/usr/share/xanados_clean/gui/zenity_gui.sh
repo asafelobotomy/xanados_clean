@@ -313,27 +313,41 @@ monitor_progress() {
     local current_step=0
     local total_steps=15
     local last_line=""
+    local progress_started=false
     
     # Start progress dialog in background
     (
         while IFS= read -r line; do
-            # Extract step information from colored output
-            if [[ "$line" =~ \[([0-9]+)/([0-9]+)\] ]]; then
+            # Extract step information from colored output - be more flexible with patterns
+            if [[ "$line" =~ \[.*\].*\(([0-9]+)/([0-9]+)\) ]]; then
                 current_step="${BASH_REMATCH[1]}"
                 total_steps="${BASH_REMATCH[2]}"
-                step_name=$(echo "$line" | sed 's/.*] //' | sed 's/\x1b\[[0-9;]*m//g')
+                step_name=$(echo "$line" | sed 's/.*) //' | sed 's/\x1b\[[0-9;]*m//g')
                 percentage=$(( current_step * 100 / total_steps ))
                 echo "$percentage"
                 echo "# Step $current_step of $total_steps: $step_name"
+                progress_started=true
             elif [[ "$line" =~ ^\[.*\] ]]; then
                 # Regular log line
                 clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^\[.\] //')
                 if [[ -n "$clean_line" ]]; then
                     echo "# $clean_line"
                     last_line="$clean_line"
+                    # If we haven't started progress yet, estimate based on content
+                    if [[ "$progress_started" == "false" ]]; then
+                        if [[ "$clean_line" =~ optimization|package|update|cache ]]; then
+                            echo "10"
+                        fi
+                    fi
+                fi
+            elif [[ -n "$line" && "$line" != *"[sudo]"* ]]; then
+                # Any other output that isn't a sudo prompt
+                clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g')
+                if [[ -n "$clean_line" ]]; then
+                    echo "# $clean_line"
                 fi
             fi
-        done < <(tail -f "$OUTPUT_FILE" 2>/dev/null)
+        done < <(tail -f "$OUTPUT_FILE" 2>/dev/null || echo "# Starting...")
     ) | zenity --progress \
         --title="xanadOS Clean - System Maintenance" \
         --text="Initializing system maintenance..." \
@@ -356,12 +370,21 @@ run_maintenance() {
     
     # Start maintenance in background
     (
+        # Set environment variables based on safety mode
+        if [[ "$SAFETY_MODE" == "Test Mode (Safe)" ]]; then
+            export TEST_MODE=true
+            export SUDO=""
+        fi
+        
         "${MAIN_SCRIPT}" "${COMMAND_ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE"
         echo $? > "${TEMP_DIR}/exit_code"
     ) &
     
     local maintenance_pid=$!
     echo "$maintenance_pid" > "$PID_FILE"
+    
+    # Give the script a moment to start and create output
+    sleep 1
     
     # Monitor progress
     monitor_progress
