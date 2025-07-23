@@ -1,20 +1,37 @@
 #!/usr/bin/env bash
 # archlinux_clean.sh — Arch Linux System Maintenance (Gaming + Dev + Security)
 # Author: Linux Specialist (ChatGPT)
-# Updated: 2025-06-06
+# Updated: 2025-07-23
+# Version: 2.0.0
 
 set -euo pipefail
 IFS=$'\n\t'
 
+# Get script directory for relative paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Color definitions
 readonly GREEN='\033[0;32m'
 readonly BLUE='\033[1;34m'
 readonly CYAN='\033[1;36m'
 readonly RED='\033[0;31m'
 readonly NC='\033[0m'
 
-LOG_FILE="${HOME}/Documents/system_maint.log"
-[[ -d "${HOME}/Documents" ]] || LOG_FILE="${HOME}/system_maint.log"
+# Load configuration and enhancement systems
+if [[ -f "$SCRIPT_DIR/lib/config.sh" ]]; then
+    # shellcheck source=lib/config.sh
+    source "$SCRIPT_DIR/lib/config.sh"
+elif [[ -f "$SCRIPT_DIR/lib/enhancements.sh" ]]; then
+    # shellcheck source=lib/enhancements.sh
+    source "$SCRIPT_DIR/lib/enhancements.sh"
+fi
 
+# Set defaults if not loaded by configuration system
+LOG_FILE="${LOG_FILE:-${HOME}/Documents/system_maint.log}"
+AUTO_MODE="${AUTO_MODE:-false}"
+
+# Ensure log directory exists
+[[ -d "${HOME}/Documents" ]] || LOG_FILE="${HOME}/system_maint.log"
 LOG_DIR=$(dirname "${LOG_FILE}")
 mkdir -p "${LOG_DIR}"
 
@@ -57,19 +74,88 @@ show_progress() {
   printf '%b[%s] (%d/%d) %s%b\n' "${CYAN}" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS" "$desc" "${NC}"
 }
 
-# Default to interactive mode unless --yes/--auto is provided
-AUTO_MODE=false
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -y|--yes|--auto)
-      AUTO_MODE=true
-      shift
-      ;;
-    *)
-      shift
-      ;;
-  esac
-done
+# Enhanced argument parsing with configuration support
+show_help() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+OPTIONS:
+    -h, --help              Show this help message
+    -a, --auto              Run in automatic mode (non-interactive)
+    -y, --yes               Alias for --auto
+    -c, --config FILE       Use specific configuration file
+    --show-config           Display current configuration and exit
+    --create-config         Create default configuration file
+    -v, --version           Show version information
+    --test-mode             Run in test mode (dry-run)
+
+EXAMPLES:
+    $0                      Run interactively
+    $0 --auto               Run automatically with default settings
+    $0 --config ~/.my-config.conf --auto
+    $0 --show-config        Show current configuration
+
+For more information, see the documentation in docs/
+EOF
+}
+
+show_version() {
+    echo "xanadOS Clean for Arch Linux - Version 2.0.0"
+    echo "Updated: 2025-07-23"
+    echo "Author: Linux Specialist (ChatGPT)"
+}
+
+# Parse command line arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -a|--auto|-y|--yes)
+                AUTO_MODE=true
+                shift
+                ;;
+            -c|--config)
+                if [[ -n "${2:-}" && -f "$2" ]]; then
+                    CONFIG_FILE="$2"
+                    shift 2
+                else
+                    error "Configuration file not found: ${2:-}"
+                    exit 1
+                fi
+                ;;
+            --show-config)
+                load_config
+                show_config
+                exit 0
+                ;;
+            --create-config)
+                create_default_config
+                exit $?
+                ;;
+            -v|--version)
+                show_version
+                exit 0
+                ;;
+            --test-mode)
+                TEST_MODE=true
+                shift
+                ;;
+            -*)
+                error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+            *)
+                error "Unexpected argument: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
 
 # Determine privilege level and configure sudo usage
 if (( EUID == 0 )); then
@@ -480,28 +566,99 @@ main_menu() {
 }
 
 main() {
-  require_pacman
-  print_banner "Arch Maintenance"
-  if [[ ${AUTO_MODE} != true ]]; then
-    main_menu
-  else
-    ASK_EACH=false
+  # Parse command line arguments
+  parse_arguments "$@"
+  
+  # Enhanced initialization with all systems
+  local resumed=false
+  if command -v enhanced_init >/dev/null 2>&1; then
+    if enhanced_init; then
+      resumed=true
+    fi
   fi
-  run_step refresh_mirrors "Refresh Mirrors"
+  
+  # Load configuration (after argument parsing to handle custom config file)
+  if command -v load_config >/dev/null 2>&1; then
+    load_config
+  fi
+  
+  # Run pre-maintenance script if configured
+  if [[ -n "${PRE_MAINTENANCE_SCRIPT:-}" ]]; then
+    run_custom_script "$PRE_MAINTENANCE_SCRIPT" "pre-maintenance"
+  fi
+  
+  require_pacman
+  print_banner "Arch Maintenance v2.0"
+  
+  # Check for test mode
+  if [[ "${TEST_MODE:-false}" == "true" ]]; then
+    log "Running in test mode - no actual changes will be made"
+    SUDO="echo sudo"
+  fi
+  
+  # Skip menu if resuming from checkpoint
+  if [[ "$resumed" != "true" ]]; then
+    if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+      main_menu
+    else
+      ASK_EACH=false
+    fi
+  fi
+  
+  # Run maintenance steps with enhanced execution
+  if [[ "${UPDATE_MIRRORS:-true}" == "true" ]]; then
+    run_step refresh_mirrors "Refresh Mirrors"
+  fi
   run_step choose_pkg_manager "Package Manager Setup"
   run_step pre_backup "System Backup"
   run_step dependency_check "Dependency Check"
   run_step system_update "System Update"
-  run_step flatpak_update "Flatpak Update"
-  run_step remove_orphans "Remove Orphans"
-  run_step cache_cleanup "Cache Cleanup"
-  run_step security_scan "Security Scan"
+  
+  if [[ "${ENABLE_FLATPAK:-true}" == "true" ]]; then
+    run_step flatpak_update "Flatpak Update"
+  fi
+  
+  if [[ "${ENABLE_ORPHAN_REMOVAL:-true}" == "true" ]]; then
+    run_step remove_orphans "Remove Orphans"
+  fi
+  
+  if [[ "${ENABLE_CACHE_CLEANUP:-true}" == "true" ]]; then
+    run_step cache_cleanup "Cache Cleanup"
+  fi
+  
+  if [[ "${ENABLE_SECURITY_SCAN:-true}" == "true" ]]; then
+    run_step security_scan "Security Scan"
+  fi
+  
   run_step check_failed_services "Failed Service Check"
   run_step check_journal_errors "Journal Error Check"
-  run_step btrfs_maintenance "Btrfs Maintenance"
-  run_step ssd_trim "SSD Trim"
-  run_step display_arch_news "Arch News"
-  run_step system_report "System Report"
+  
+  if [[ "${ENABLE_BTRFS_MAINTENANCE:-auto}" != "false" ]]; then
+    run_step btrfs_maintenance "Btrfs Maintenance"
+  fi
+  
+  if [[ "${ENABLE_SSD_TRIM:-auto}" != "false" ]]; then
+    run_step ssd_trim "SSD Trim"
+  fi
+  
+  if [[ "${SHOW_NEWS:-true}" == "true" ]]; then
+    run_step display_arch_news "Arch News"
+  fi
+  
+  if [[ "${ENABLE_SYSTEM_REPORT:-true}" == "true" ]]; then
+    run_step system_report "System Report"
+  fi
+  
+  # Run post-maintenance script if configured
+  if [[ -n "${POST_MAINTENANCE_SCRIPT:-}" ]]; then
+    run_custom_script "$POST_MAINTENANCE_SCRIPT" "post-maintenance"
+  fi
+  
+  # Enhanced cleanup and summary
+  if command -v enhanced_cleanup >/dev/null 2>&1; then
+    enhanced_cleanup
+  fi
+  
   final_summary
 }
 

@@ -1,15 +1,46 @@
 {
   "name": "xanados_clean",
-  "version": "1.0.0",
-  "description": "Example maintenance scripts for Arch and Fedora/Bazzite systems.",
+  "version": "2.0.0",
+  "description": "Enhanced maintenance scripts for Arch and Fedora/Bazzite systems with configuration management, testing, and error recovery.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd tests && ./run_tests.sh",
+    "test:arch": "cd tests && ./run_tests.sh test_archlinux_clean.bats",
+    "test:bazzite": "cd tests && ./run_tests.sh test_bazzite_clean.bats",
+    "test:build": "cd tests && ./run_tests.sh test_build_appimage.bats",
+    "lint:md": "markdownlint-cli2 '**/*.md'",
+    "lint:sh": "shellcheck *.sh lib/*.sh tests/*.bash",
+    "lint": "npm run lint:md && npm run lint:sh",
+    "build": "./build_appimage.sh archlinux_clean.sh",
+    "docs": "echo 'Documentation available in docs/ directory'",
+    "config": "echo 'Run ./archlinux_clean.sh --create-config to create default config'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "linux",
+    "maintenance",
+    "archlinux",
+    "fedora",
+    "bazzite",
+    "system-administration",
+    "automation",
+    "package-management",
+    "security",
+    "backup"
+  ],
+  "author": "Linux Specialist (ChatGPT)",
+  "license": "GPL-3.0",
   "type": "commonjs",
   "devDependencies": {
     "markdownlint-cli2": "^0.18.1"
-  }
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asafelobotomy/xanados_clean.git"
+  },
+  "bugs": {
+    "url": "https://github.com/asafelobotomy/xanados_clean/issues"
+  },
+  "homepage": "https://github.com/asafelobotomy/xanados_clean#readme"
 }

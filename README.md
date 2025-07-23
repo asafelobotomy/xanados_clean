@@ -1,88 +1,161 @@
 # xanadOS Clean
 
-This repository contains example maintenance scripts for Linux systems.
-Two versions are included to suit different distributions:
+**Version 2.0.0** - Enhanced Linux system maintenance toolkit with configuration management, error recovery, and comprehensive testing.
 
-- **`archlinux_clean.sh`** – for Arch-based systems
-- **`bazzite_clean.sh`** – for Fedora/Bazzite systems
+This repository contains professional-grade maintenance scripts for Linux systems with support for:
 
-Both scripts provide:
+- **`archlinux_clean.sh`** – for Arch-based systems (Arch Linux, Manjaro, EndeavourOS)
+- **`bazzite_clean.sh`** – for Fedora/Bazzite systems (Fedora, Silverblue, Kinoite, Bazzite)
 
-- Package updates using `pacman/paru` or `dnf/rpm-ostree` depending on the
-  distribution
-- Mirror or repository refresh prior to upgrades
-- Optional system backups via Timeshift, Snapper, or user-defined `rsync`
-  (skipped if a snapshot exists from the last 30 days)
-- Dependency checking with interactive installation of recommended packages
-- Optional Flatpak updates
-- Orphan package removal and cache cleanup with journal rotation
-- Security scanning with rkhunter (plus `arch-audit` on Arch)
-- Btrfs maintenance tasks with usage-aware balancing and SSD trimming
-- Checks for failed systemd services and recent journal errors
-- Display of distribution news headlines (Arch or Fedora) parsed with xmlstarlet
-- System reporting with GPU, firewall, SMART status, and sensors
-- Interactive menu for full or step-by-step maintenance
-- `--auto` flag for unattended execution
+## ✨ Key Features
+
+### Core Functionality
+
+- **Smart Package Management**: Automatic package updates with AUR helper support
+- **Intelligent Mirroring**: Optimized repository mirrors for faster downloads
+- **Multi-Backup Support**: Timeshift, Snapper, or rsync backup options
+- **Security Scanning**: rkhunter, arch-audit, and vulnerability assessment
+- **Filesystem Maintenance**: Btrfs optimization and SSD TRIM support
+- **System Monitoring**: Failed services detection and journal error analysis
+- **Distribution News**: Latest updates from Arch and Fedora newsfeeds
+
+### Enhanced Features (v2.0)
+
+- **🔧 Configuration Management**: Flexible settings via config files
+- **🛡️ Error Recovery System**: Checkpoint/resume and automatic rollback
+- **📋 Comprehensive Testing**: BATS unit testing framework
+- **📚 Enhanced Documentation**: API docs and troubleshooting guides
+- **⚡ Performance Optimizations**: Faster execution with progress tracking
+- **🔒 Security Hardening**: Input validation and privilege management
 
 ## Usage
 
-Run the script for your distribution. Examples:
+### Basic Usage
+
+Run the script for your distribution:
 
 ```bash
 # For Arch-based systems
-bash archlinux_clean.sh
+./archlinux_clean.sh
 
 # For Fedora/Bazzite
-bash bazzite_clean.sh
+./bazzite_clean.sh
 ```
 
-For unattended runs, use the `--auto` flag:
+### Command Line Options
 
 ```bash
-bash archlinux_clean.sh --auto
+# Show help
+./archlinux_clean.sh --help
 
-# or
+# Run automatically (non-interactive)
+./archlinux_clean.sh --auto
 
-bash bazzite_clean.sh --auto
+# Use custom configuration
+./archlinux_clean.sh --config ~/.my-config.conf
+
+# Show current configuration
+./archlinux_clean.sh --show-config
+
+# Create default configuration file
+./archlinux_clean.sh --create-config
+
+# Test mode (dry run)
+./archlinux_clean.sh --test-mode
 ```
 
-Run it as a normal user with sudo privileges. Executing the script as root will
-cause AUR helpers like `paru` to fail.
+### Configuration
+
+Create a personalized configuration:
+
+```bash
+# Create default config in ~/.config/xanados_clean/
+./archlinux_clean.sh --create-config
+
+# Edit the configuration
+nano ~/.config/xanados_clean/config.conf
+```
+
+Key configuration options:
+
+```bash
+# Enable/disable features
+ENABLE_FLATPAK=true
+ENABLE_SECURITY_SCAN=true
+ENABLE_BTRFS_MAINTENANCE=auto
+
+# Backup settings
+BACKUP_METHOD=timeshift
+BACKUP_SKIP_THRESHOLD_DAYS=7
+
+# Custom scripts
+PRE_MAINTENANCE_SCRIPT="/path/to/pre-script.sh"
+POST_MAINTENANCE_SCRIPT="/path/to/post-script.sh"
+```
+
+### Error Recovery
+
+If a maintenance operation fails:
+
+1. **Automatic Recovery**: The script will offer recovery options
+2. **Manual Recovery**: Check `docs/TROUBLESHOOTING.md` for specific guidance
+3. **Resume from Checkpoint**: Restart interrupted sessions automatically
+
+### Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Install BATS testing framework first
+# Arch: sudo pacman -S bats
+# Fedora: sudo dnf install bats
+
+# Run all tests
+cd tests && ./run_tests.sh
+
+# Run specific test suite
+./tests/run_tests.sh test_archlinux_clean.bats
+```
 
 Logs are stored in `~/Documents/system_maint.log` by default.
 
-## Building an AppImage
+## Documentation
 
-An example `build_appimage.sh` script is included to package one of the
-maintenance scripts as an AppImage. The steps are:
+### Comprehensive Documentation Suite
 
-1. Execute the build script:
+- **[API Documentation](docs/API.md)** - Complete function reference and usage
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Solutions for common issues
+- **[Configuration Reference](config/default.conf)** - All available settings
+- **[Testing Guide](tests/README.md)** - How to run and write tests
 
-```bash
-bash build_appimage.sh archlinux_clean.sh
+### Quick Start Guides
+
+- **[AGENTS.md](AGENTS.md)** - Repository contribution guidelines
+- **[AGENTS_CI.md](AGENTS_CI.md)** - CI/CD pipeline documentation  
+- **[AGENTS_SYSTEM.md](AGENTS_SYSTEM.md)** - System requirements
+- **[AGENTS_SECURITY.md](AGENTS_SECURITY.md)** - Security and backup tools
+
+## Architecture
+
+### Project Structure
+
+```text
+xanados_clean/
+├── archlinux_clean.sh      # Main Arch maintenance script
+├── bazzite_clean.sh        # Main Fedora/Bazzite maintenance script
+├── build_appimage.sh       # AppImage packaging script
+├── lib/                    # Shared libraries
+│   ├── config.sh          # Configuration management
+│   └── recovery.sh        # Error recovery system
+├── config/                 # Configuration files
+│   └── default.conf       # Default configuration template
+├── tests/                  # Test suite
+│   ├── run_tests.sh       # Test runner
+│   ├── setup_suite.bash   # Test framework setup
+│   └── test_*.bats        # Unit test files
+├── docs/                   # Documentation
+│   ├── API.md             # Function documentation
+│   └── TROUBLESHOOTING.md # Problem resolution guide
+└── .github/workflows/     # CI/CD pipeline
+    └── lint.yml           # Automated testing and linting
 ```
-
-1. The resulting `xanadOS_clean-1.0.AppImage` can then be distributed and run
-   on new systems.
-
-The build script downloads `appimagetool` if necessary and creates a minimal
-AppDir containing the script, desktop entry, and placeholder icon.
-
-## GitHub Actions
-
-This repository uses a single GitHub Actions workflow stored in
-`.github/workflows/lint.yml`.
-
-The workflow runs multiple linters in parallel using a matrix strategy:
-
-- **markdownlint** – ensures Markdown files follow common style rules using
-  [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2).
-- **proselint** – checks prose in our documentation with
-  [proselint](https://github.com/amperser/proselint).
-- **ShellCheck** – lints all shell scripts using
-  [ShellCheck](https://github.com/koalaman/shellcheck).
-- **yamllint** – validates YAML files with
-  [yamllint](https://github.com/adrienverge/yamllint).
-
-The workflow runs automatically on pushes and pull requests to keep the
-repository tidy and consistent.

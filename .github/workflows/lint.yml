@@ -1,10 +1,16 @@
-name: Linters
+name: CI/CD Pipeline
 
 on:
   push:
-    paths: ["**/*.sh", "**/*.md", "**/*.yml", "**/*.yaml"]
+    paths: ["**/*.sh", "**/*.md", "**/*.yml", "**/*.yaml", "**/*.bats"]
   pull_request:
-    paths: ["**/*.sh", "**/*.md", "**/*.yml", "**/*.yaml"]
+    paths: ["**/*.sh", "**/*.md", "**/*.yml", "**/*.yaml", "**/*.bats"]
+  schedule:
+    # Run weekly security scan
+    - cron: '0 2 * * 1'
+
+env:
+  BATS_VERSION: 1.8.2
 
 jobs:
   lint:
@@ -12,47 +18,188 @@ jobs:
     strategy:
       matrix:
         linter: [markdownlint, proselint, shellcheck, yamllint]
-    name: ${{ matrix.linter }}
+    name: Lint (${{ matrix.linter }})
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
         if: matrix.linter == 'markdownlint'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: package-lock.json
+          
       - name: Cache node_modules
         if: matrix.linter == 'markdownlint'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
-      - run: npm ci
+            
+      - name: Install Node dependencies
         if: matrix.linter == 'markdownlint'
-      - run: npx markdownlint-cli2 '**/*.md'
+        run: npm ci
+        
+      - name: Run markdownlint
         if: matrix.linter == 'markdownlint'
+        run: npx markdownlint-cli2 '**/*.md'
 
       - name: Setup Python
         if: matrix.linter == 'proselint'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
           cache: 'pip'
           cache-dependency-path: requirements.txt
-      - run: pip install -r requirements.txt
+          
+      - name: Install Python dependencies
         if: matrix.linter == 'proselint'
-      - run: proselint AGENTS_*.md
+        run: pip install -r requirements.txt
+        
+      - name: Run proselint
         if: matrix.linter == 'proselint'
+        run: proselint AGENTS_*.md docs/*.md
 
-      - name: ShellCheck
+      - name: Run ShellCheck
         if: matrix.linter == 'shellcheck'
         uses: ludeeus/action-shellcheck@master
+        with:
+          additional_files: 'tests/setup_suite.bash'
+          ignore_paths: 'node_modules'
+          severity: warning
 
-      - name: Yamllint
+      - name: Run yamllint
         if: matrix.linter == 'yamllint'
         uses: ibiqlik/action-yamllint@v3
         with:
           config_file: .yamllint.yml
+
+  test:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install BATS
+        run: |
+          wget https://github.com/bats-core/bats-core/archive/v${BATS_VERSION}.tar.gz
+          tar -xzf v${BATS_VERSION}.tar.gz
+          cd bats-core-${BATS_VERSION}
+          sudo ./install.sh /usr/local
+          
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xmlstarlet curl
+          
+      - name: Run unit tests
+        run: |
+          chmod +x tests/run_tests.sh
+          ./tests/run_tests.sh
+          
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/test-*.tap
+          retention-days: 7
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security Scan
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[security]')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Bandit security scan
+        uses: securecodewarrior/github-action-bandit@v1
+        with:
+          # Skip since we're scanning shell scripts, not Python
+          recursive: false
+          
+      - name: Run Semgrep security scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/bash
+            
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'bash'
+          
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os_type: [arch, fedora]
+    name: Integration Test (${{ matrix.os_type }})
+    needs: [lint, test]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test Arch script syntax
+        if: matrix.os_type == 'arch'
+        run: |
+          bash -n archlinux_clean.sh
+          # Test configuration loading
+          source lib/config.sh
+          echo "Configuration system loads successfully"
+          
+      - name: Test Fedora script syntax
+        if: matrix.os_type == 'fedora'
+        run: |
+          bash -n bazzite_clean.sh
+          # Test configuration loading
+          source lib/config.sh
+          echo "Configuration system loads successfully"
+          
+      - name: Test AppImage build script
+        run: |
+          bash -n build_appimage.sh
+          echo "AppImage build script syntax OK"
+
+  release:
+    runs-on: ubuntu-latest
+    name: Create Release
+    needs: [lint, test, integration]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Simple changelog generation
+          echo "## Changes" > CHANGELOG.md
+          git log --oneline --since="1 week ago" >> CHANGELOG.md
+          
+      - name: Create AppImage
+        run: |
+          chmod +x build_appimage.sh
+          ./build_appimage.sh archlinux_clean.sh
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            xanadOS_clean-*.AppImage
+            archlinux_clean.sh
+            bazzite_clean.sh
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

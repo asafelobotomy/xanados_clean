@@ -1,20 +1,37 @@
 #!/usr/bin/env bash
 # bazzite_clean.sh — Fedora/Bazzite System Maintenance (Gaming + Dev + Security)
 # Author: Linux Specialist (ChatGPT)
-# Updated: 2025-06-06
+# Updated: 2025-07-23
+# Version: 2.0.0
 
 set -euo pipefail
 IFS=$'\n\t'
 
+# Get script directory for relative paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Color definitions
 readonly GREEN='\033[0;32m'
 readonly BLUE='\033[1;34m'
 readonly CYAN='\033[1;36m'
 readonly RED='\033[0;31m'
 readonly NC='\033[0m'
 
-LOG_FILE="${HOME}/Documents/system_maint.log"
-[[ -d "${HOME}/Documents" ]] || LOG_FILE="${HOME}/system_maint.log"
+# Load configuration and enhancement systems
+if [[ -f "$SCRIPT_DIR/lib/config.sh" ]]; then
+    # shellcheck source=lib/config.sh
+    source "$SCRIPT_DIR/lib/config.sh"
+elif [[ -f "$SCRIPT_DIR/lib/enhancements.sh" ]]; then
+    # shellcheck source=lib/enhancements.sh
+    source "$SCRIPT_DIR/lib/enhancements.sh"
+else
+    # Fallback if configuration system not available
+    LOG_FILE="${HOME}/Documents/system_maint.log"
+    AUTO_MODE=false
+fi
 
+# Ensure log directory exists
+[[ -d "${HOME}/Documents" ]] || LOG_FILE="${LOG_FILE:-${HOME}/system_maint.log}"
 LOG_DIR=$(dirname "${LOG_FILE}")
 mkdir -p "${LOG_DIR}"
 
@@ -61,19 +78,88 @@ show_progress() {
   printf '%b[%s] (%d/%d) %s%b\n' "${CYAN}" "$bar" "$CURRENT_STEP" "$TOTAL_STEPS" "$desc" "${NC}"
 }
 
-# Default to interactive mode unless --yes/--auto is provided
-AUTO_MODE=false
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -y|--yes|--auto)
-      AUTO_MODE=true
-      shift
-      ;;
-    *)
-      shift
-      ;;
-  esac
-done
+# Enhanced argument parsing with configuration support
+show_help() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+OPTIONS:
+    -h, --help              Show this help message
+    -a, --auto              Run in automatic mode (non-interactive)
+    -y, --yes               Alias for --auto
+    -c, --config FILE       Use specific configuration file
+    --show-config           Display current configuration and exit
+    --create-config         Create default configuration file
+    -v, --version           Show version information
+    --test-mode             Run in test mode (dry-run)
+
+EXAMPLES:
+    $0                      Run interactively
+    $0 --auto               Run automatically with default settings
+    $0 --config ~/.my-config.conf --auto
+    $0 --show-config        Show current configuration
+
+For more information, see the documentation in docs/
+EOF
+}
+
+show_version() {
+    echo "xanadOS Clean for Fedora/Bazzite - Version 2.0.0"
+    echo "Updated: 2025-07-23"
+    echo "Author: Linux Specialist (ChatGPT)"
+}
+
+# Parse command line arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -a|--auto|-y|--yes)
+                AUTO_MODE=true
+                shift
+                ;;
+            -c|--config)
+                if [[ -n "${2:-}" && -f "$2" ]]; then
+                    CONFIG_FILE="$2"
+                    shift 2
+                else
+                    error "Configuration file not found: ${2:-}"
+                    exit 1
+                fi
+                ;;
+            --show-config)
+                load_config
+                show_config
+                exit 0
+                ;;
+            --create-config)
+                create_default_config
+                exit $?
+                ;;
+            -v|--version)
+                show_version
+                exit 0
+                ;;
+            --test-mode)
+                TEST_MODE=true
+                shift
+                ;;
+            -*)
+                error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+            *)
+                error "Unexpected argument: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
 
 # Determine privilege level and configure sudo usage
 if (( EUID == 0 )); then
