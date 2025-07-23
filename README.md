@@ -21,7 +21,7 @@ This repository provides a comprehensive system maintenance script designed spec
 - **🔧 Configuration Management**: Flexible settings via config files
 - **🛡️ Error Recovery System**: Checkpoint/resume and automatic rollback
 - **📋 Comprehensive Testing**: BATS unit testing framework
-- **📚 Enhanced Documentation**: API docs and troubleshooting guides
+- **📚 Enhanced Documentation**: Comprehensive user and developer guides
 - **⚡ Performance Optimizations**: Faster execution with progress tracking
 - **🔒 Security Hardening**: Input validation and privilege management
 
@@ -34,19 +34,27 @@ This repository provides a comprehensive system maintenance script designed spec
 - **🔒 Enhanced Security**: CVE scanning, package integrity, unowned file detection
 - **🔄 Automated Hooks**: Proactive maintenance monitoring and alerts
 
-## Usage
+## Quick Start
 
-### Basic Usage
+### Installation
 
-Run the maintenance script:
+1. Clone the repository:
 
-```bash
-# Basic interactive mode
-./xanados_clean.sh
+   ```bash
+   git clone https://github.com/asafelobotomy/xanados_clean.git
+   cd xanados_clean
+   chmod +x xanados_clean.sh
+   ```
 
-# Automatic mode (non-interactive)
-./xanados_clean.sh --auto
-```
+2. Run the script:
+
+   ```bash
+   # Interactive mode (recommended)
+   ./xanados_clean.sh
+   
+   # Automatic mode
+   ./xanados_clean.sh --auto
+   ```
 
 ### Command Line Options
 
@@ -89,80 +97,80 @@ Key configuration options:
 ENABLE_FLATPAK=true
 ENABLE_SECURITY_SCAN=true
 ENABLE_BTRFS_MAINTENANCE=auto
+## Configuration
+
+Create a configuration file for customized settings:
+
+```bash
+./xanados_clean.sh --create-config
+```
+
+Key configuration options:
+
+```bash
+# General settings
+AUTO_MODE=false
+ASK_EACH_STEP=false
 
 # Backup settings
 BACKUP_METHOD=timeshift
 BACKUP_SKIP_THRESHOLD_DAYS=7
 
-# Custom scripts
-PRE_MAINTENANCE_SCRIPT="/path/to/pre-script.sh"
-POST_MAINTENANCE_SCRIPT="/path/to/post-script.sh"
+# Feature toggles
+ENABLE_SECURITY_SCAN=true
+ENABLE_ARCH_OPTIMIZATIONS=true
 ```
-
-### Error Recovery
-
-If a maintenance operation fails:
-
-1. **Automatic Recovery**: The script will offer recovery options
-2. **Manual Recovery**: Check `docs/TROUBLESHOOTING.md` for specific guidance
-3. **Resume from Checkpoint**: Restart interrupted sessions automatically
-
-### Testing
-
-Run the comprehensive test suite:
-
-```bash
-# Install BATS testing framework first
-# Arch: sudo pacman -S bats
-# Fedora: sudo dnf install bats
-
-# Run all tests
-cd tests && ./run_tests.sh
-
-# Run specific test suite
-./tests/run_tests.sh test_xanados_clean.bats
-```
-
-Logs are stored in `~/Documents/system_maint.log` by default.
 
 ## Documentation
 
-### Comprehensive Documentation Suite
+- **[User Guide](docs/USER_GUIDE.md)** - Complete setup and usage instructions
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - API reference, testing, and development
+- **[Changelog](CHANGELOG.md)** - Version history and updates
 
-- **[API Documentation](docs/API.md)** - Complete function reference and usage
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Solutions for common issues
-- **[Configuration Reference](config/default.conf)** - All available settings
-- **[Testing Guide](tests/README.md)** - How to run and write tests
+## Testing
 
-### Quick Start Guides
+Run the test suite to verify functionality:
 
-- **[AGENTS.md](AGENTS.md)** - Repository contribution guidelines
-- **[AGENTS_CI.md](AGENTS_CI.md)** - CI/CD pipeline documentation  
-- **[AGENTS_SYSTEM.md](AGENTS_SYSTEM.md)** - System requirements
-- **[AGENTS_SECURITY.md](AGENTS_SECURITY.md)** - Security and backup tools
+```bash
+# Install BATS testing framework
+sudo pacman -S bats
 
-## Architecture
+# Run all tests
+cd tests && ./run_tests.sh
+```
 
-### Project Structure
+## Project Structure
 
 ```text
 xanados_clean/
-├── xanados_clean.sh        # Main Arch maintenance script
-├── build_appimage.sh       # AppImage packaging script
-├── lib/                    # Shared libraries
+├── xanados_clean.sh        # Main script
+├── lib/                    # Core libraries
 │   ├── config.sh          # Configuration management
 │   ├── recovery.sh        # Error recovery system
 │   ├── performance.sh     # Performance monitoring
+│   ├── arch_optimizations.sh # Arch-specific features
 │   └── enhancements.sh    # Integration layer
 ├── config/                 # Configuration files
-│   └── default.conf       # Default configuration template
 ├── tests/                  # Test suite
-│   ├── run_tests.sh       # Test runner
-│   ├── setup_suite.bash   # Test framework setup
-│   └── test_*.bats        # Unit test files
 ├── docs/                   # Documentation
-│   ├── API.md             # Function documentation
-│   └── TROUBLESHOOTING.md # Problem resolution guide
-└── .github/workflows/     # CI/CD pipeline
-    └── lint.yml           # Automated testing and linting
+│   ├── USER_GUIDE.md      # User documentation
+│   └── DEVELOPER_GUIDE.md # Developer documentation
+└── archive/                # Historical documentation
 ```
+
+## Requirements
+
+- **OS**: Arch Linux or derivatives (Manjaro, EndeavourOS)
+- **Shell**: Bash 4.0+
+- **Privileges**: sudo access
+- **Network**: Internet connection for updates
+- **Optional**: BATS (testing), Node.js (development)
+
+## License & Support
+
+- **License**: GPL-3.0
+- **Issues**: [GitHub Issues](https://github.com/asafelobotomy/xanados_clean/issues)
+- **Logs**: `~/Documents/system_maint.log`
+
+For detailed usage instructions, see the [User Guide](docs/USER_GUIDE.md).  
+For development information, see the [Developer Guide](docs/DEVELOPER_GUIDE.md).

@@ -1,77 +1,90 @@
-# Test Suite Documentation
+# xanadOS Clean Test Suite
+
+Comprehensive test suite for the xanadOS Clean Arch Linux maintenance tool.
 
 ## Overview
 
-The xanadOS Clean test suite uses BATS (Bash Automated Testing System) to provide comprehensive unit testing for all shell scripts in the project.
-
-## Prerequisites
-
-### Install BATS
-
-**Arch Linux:**
-```bash
-sudo pacman -S bats
-```
-
-**From Source:**
-```bash
-git clone https://github.com/bats-core/bats-core.git
-cd bats-core
-sudo ./install.sh /usr/local
-```
-
-### Install Test Dependencies
-
-```bash
-# Required for news parsing tests
-sudo pacman -S xmlstarlet curl  # Arch
-```
-
-## Running Tests
-
-### Run All Tests
-
-```bash
-cd tests
-./run_tests.sh
-```
-
-### Run Specific Test Files
-
-```bash
-./run_tests.sh test_xanados_clean.bats
-./run_tests.sh test_build_appimage.bats
-```
-
-### Run Individual Tests
-
-```bash
-bats -f "require_pacman should pass" test_xanados_clean.bats
-```
+This test suite has been optimized and consolidated to provide:
+- **Fast execution** with parallel test capabilities
+- **Comprehensive coverage** of all major functionality
+- **Easy maintenance** with consolidated test helpers
+- **Flexible execution** with multiple test categories
 
 ## Test Structure
 
-### Test Files
+### Files
 
-- `test_xanados_clean.bats` - Tests for Arch Linux maintenance script
-- `test_build_appimage.bats` - Tests for AppImage build script
-- `setup_suite.bash` - Common test setup and utilities
-
-### Mock Framework
-
-The test suite includes a comprehensive mocking system:
-
-- **Mock Commands**: Create fake system commands for testing
-- **Temporary Environment**: Isolated test environment
-- **Safe Execution**: No actual system changes during tests
+- `test_runner.sh` - Main test runner with advanced options
+- `test_helpers.bash` - Consolidated test configuration and helper functions
+- `test_core.bats` - Core functionality tests
+- `test_build_appimage.bats` - AppImage build tests
+- Legacy files (maintained for compatibility):
+  - `run_tests.sh` - Simple test runner
+  - `setup_suite.bash` - Original test setup
 
 ### Test Categories
 
-1. **Syntax Tests**: Verify script syntax and structure
-2. **Function Tests**: Unit tests for individual functions
-3. **Integration Tests**: Test component interactions
-4. **Configuration Tests**: Validate configuration loading
-5. **Error Handling Tests**: Test failure scenarios
+- **Core Tests** (`test_core.bats`): Essential functionality, logging, progress tracking
+- **Library Tests**: Individual library function testing
+- **Integration Tests**: End-to-end functionality testing
+- **Performance Tests**: Resource usage and timing validation
+
+## Quick Start
+
+### Install Dependencies
+
+```bash
+# Install test dependencies (Arch Linux)
+sudo pacman -S bats shellcheck bc
+
+# Or use the automated setup
+./test_runner.sh --setup
+```
+
+### Run Tests
+
+```bash
+# Run all tests
+./test_runner.sh
+
+# Run specific test category
+./test_runner.sh core
+./test_runner.sh libraries
+./test_runner.sh integration
+
+# Run with options
+./test_runner.sh --parallel --verbose all
+./test_runner.sh --quick                    # Fast critical tests only
+./test_runner.sh --coverage                 # Generate coverage report
+
+# Run specific test file
+./test_runner.sh test_core.bats
+```
+
+## Test Runner Options
+
+### Basic Usage
+```bash
+./test_runner.sh [OPTIONS] [TEST_PATTERN]
+```
+
+### Options
+- `-h, --help` - Show help message
+- `-v, --verbose` - Enable verbose output
+- `-p, --parallel` - Run tests in parallel (faster)
+- `-c, --coverage` - Generate coverage report
+- `-q, --quick` - Run only fast/critical tests
+- `-l, --list` - List available tests
+- `--setup` - Setup test dependencies
+- `--clean` - Clean test artifacts
+
+### Test Patterns
+- `all` - Run all tests (default)
+- `core` - Core functionality tests
+- `libraries` - Library function tests
+- `integration` - Integration tests
+- `performance` - Performance tests
+- `[filename]` - Run specific test file
 
 ## Writing Tests
 
@@ -79,204 +92,192 @@ The test suite includes a comprehensive mocking system:
 
 ```bash
 #!/usr/bin/env bats
+# Test file description
 
-load 'setup_suite'
+load 'test_helpers'
 
-setup() {
-    source_script_functions "$PROJECT_ROOT/script.sh"
-    create_mock_command "command_name" 0 "output"
-}
-
-@test "function should work correctly" {
-    run function_name
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"expected"* ]]
-}
-
-teardown() {
-    # Cleanup if needed
-}
-```
-
-### Test Helpers
-
-#### `create_mock_command(name, exit_code, output)`
-Creates a mock command for testing:
-
-```bash
-create_mock_command "pacman" 0 "pacman 6.0.1"
-```
-
-#### `source_script_functions(script_path)`
-Loads script functions for testing:
-
-```bash
-source_script_functions "$PROJECT_ROOT/xanados_clean.sh"
-```
-
-### Test Assertions
-
-Common BATS assertions:
-
-```bash
-# Exit code assertions
-[ "$status" -eq 0 ]           # Success
-[ "$status" -eq 1 ]           # Failure
-
-# Output assertions
-[[ "$output" == *"text"* ]]   # Contains text
-[[ "$output" =~ regex ]]      # Matches regex
-[ "$output" = "exact" ]       # Exact match
-
-# File assertions
-[ -f "$file" ]                # File exists
-[ -x "$file" ]                # File is executable
-[ -s "$file" ]                # File is not empty
-```
-
-## Test Data
-
-### Mock System State
-
-Tests can simulate various system states:
-
-```bash
-setup() {
-    # Simulate Arch Linux
-    create_mock_command "pacman" 0 "pacman 6.0.1"
+@test "test description" {
+    # Setup
+    source_script_functions "$PROJECT_ROOT/xanados_clean.sh"
+    create_mock_command "command" 0 "output"
     
-    # Simulate network failure
-    create_mock_command "ping" 1 ""
+    # Execute
+    run function_to_test "arguments"
     
-    # Simulate missing dependencies
-    rm -f "$MOCK_BIN_DIR/paru"
+    # Assert
+    assert_status 0
+    assert_output_contains "expected text"
 }
 ```
 
-### Configuration Testing
-
-Test different configuration scenarios:
+### Helper Functions
 
 ```bash
-@test "should respect configuration settings" {
-    ENABLE_FLATPAK=false
-    run should_run_step "flatpak_update"
-    [ "$status" -eq 1 ]
-}
+# Environment setup
+setup_test_environment          # Automatic in load 'test_helpers'
+cleanup_test_environment        # Automatic cleanup
+
+# Mock commands
+create_mock_command "cmd" exit_code "output" [behavior]
+create_essential_mocks          # Creates common mocks (sudo, pacman, etc.)
+
+# Source project code
+source_script_functions "path/to/script.sh"
+source_project_libraries        # Source all lib/*.sh files
+
+# Assertions
+assert_status expected_code      # Check exit status
+assert_output_contains "text"    # Check output contains text
+assert_output_matches "pattern"  # Check output matches regex pattern
+verify_function_exists "func"    # Verify function is defined
 ```
 
-## Continuous Integration
-
-Tests run automatically in CI/CD:
-
-- **On Push**: All tests run on code changes
-- **On PR**: Full test suite including integration tests
-- **Scheduled**: Weekly security and regression testing
-
-### CI Test Matrix
-
-- **Lint Tests**: ShellCheck, markdownlint, yamllint
-- **Unit Tests**: Individual function testing
-- **Integration Tests**: Cross-component testing
-- **Security Tests**: Vulnerability scanning
-
-## Debugging Tests
-
-### Verbose Output
+### Mock Command Behaviors
 
 ```bash
-# Run with debug output
-bats --verbose-run test_file.bats
+# Simple mock (returns output and exit code)
+create_mock_command "ping" 0 "PING OK"
 
-# Show test timing
-bats --timing test_file.bats
+# Args behavior (shows command arguments)
+create_mock_command "pacman" 0 "mock output" "args"
+
+# Conditional behavior (responds to --version)
+create_mock_command "tool" 0 "tool output" "conditional"
+
+# Custom behavior (custom script content)
+create_mock_command "complex" 0 "
+case \$1 in
+    install) echo 'Installing...' ;;
+    remove) echo 'Removing...' ;;
+esac" "custom"
 ```
 
-### Test Isolation
+## Test Environment
 
-Each test runs in isolation:
+### Isolation
+- Each test runs in isolated temporary directory
+- Mock commands override system commands
+- No actual system changes are made
+- Automatic cleanup after tests
 
-- Separate temporary directories
-- Independent environment variables  
-- Clean state between tests
+### Variables
+- `TEST_MODE=true` - Indicates test environment
+- `AUTO_MODE=true` - Runs in non-interactive mode
+- `SUDO=""` - Disabled sudo for tests
+- `PROJECT_ROOT` - Path to project root
+- `TEST_TEMP_DIR` - Temporary test directory
+- `MOCK_BIN_DIR` - Mock commands directory
 
-### Manual Debugging
+## Coverage Reporting
 
 ```bash
-# Source test environment
-source tests/setup_suite.bash
-setup_suite
+# Generate coverage report
+./test_runner.sh --coverage
 
-# Run individual functions
-source_script_functions "xanados_clean.sh"
-create_mock_command "pacman" 0 "test output"
-
-# Test functions interactively
-require_pacman
-echo "Exit code: $?"
+# View report
+cat tests/coverage/report.txt
 ```
 
-## Best Practices
+Coverage report includes:
+- Total vs tested functions
+- Estimated coverage percentage
+- Test file statistics
+- Recommendations for improvement
 
-### Test Organization
+## Performance Testing
 
-1. **Group Related Tests**: Use descriptive test file names
-2. **Clear Test Names**: Describe expected behavior
-3. **Setup/Teardown**: Use proper test lifecycle management
-4. **Mock External Dependencies**: Avoid real system calls
+The test suite includes basic performance validation:
+- Memory usage monitoring
+- Execution time tracking
+- Resource consumption checks
 
-### Test Coverage
-
-Aim for comprehensive coverage:
-
-- ✅ **Core Functions**: All main functions tested
-- ✅ **Error Conditions**: Failure scenarios covered
-- ✅ **Configuration**: All config options tested
-- ✅ **Edge Cases**: Boundary conditions tested
-
-### Test Documentation
-
-- Comment complex test logic
-- Use descriptive variable names
-- Document mock behavior
-- Explain test purpose
-
-## Troubleshooting
-
-### Common Issues
-
-**BATS not found:**
 ```bash
-# Verify installation
-which bats
-bats --version
+# Run performance tests
+./test_runner.sh performance
+
+# Quick performance check
+./test_runner.sh --quick
 ```
 
-**Permission errors:**
+## Maintenance
+
+### Adding New Tests
+
+1. Create test file: `test_[feature].bats`
+2. Add to appropriate category in `test_runner.sh`
+3. Use `test_helpers.bash` for setup and assertions
+4. Follow existing test patterns
+
+### Updating Mock Commands
+
+1. Edit `create_essential_mocks()` in `test_helpers.bash`
+2. Add new mock behaviors as needed
+3. Test mock commands independently
+
+### Troubleshooting
+
 ```bash
-# Make test runner executable
-chmod +x tests/run_tests.sh
+# Clean test artifacts
+./test_runner.sh --clean
+
+# Verbose output for debugging
+./test_runner.sh --verbose test_name
+
+# List available tests
+./test_runner.sh --list
+
+# Check dependencies
+./test_runner.sh --setup
 ```
 
-**Mock command failures:**
+## Integration with CI/CD
+
+The test runner is designed for CI/CD integration:
+
 ```bash
-# Check mock directory permissions
-ls -la "$MOCK_BIN_DIR"
-echo "$PATH"
+# CI-friendly execution
+./test_runner.sh --parallel --coverage all
+
+# Exit codes
+# 0 = All tests passed
+# 1 = Some tests failed
 ```
 
-**Test isolation problems:**
+## Legacy Compatibility
+
+Original test files are maintained for backward compatibility:
+- `run_tests.sh` - Simple BATS runner
+- `setup_suite.bash` - Original test setup
+- `test_xanados_clean.bats` - Original test file
+
+New tests should use the optimized structure with `test_runner.sh` and `test_helpers.bash`.
+
+## Examples
+
+### Run Quick Validation
 ```bash
-# Verify cleanup in teardown
-teardown() {
-    unset VARIABLE_NAME
-    rm -rf "$TEST_TEMP_DIR"
-}
+./test_runner.sh --quick
 ```
 
-### Getting Help
+### Full Test Suite with Coverage
+```bash
+./test_runner.sh --parallel --coverage --verbose all
+```
 
-- Check BATS documentation: https://bats-core.readthedocs.io/
-- Review existing tests for examples
-- Use verbose mode for debugging
-- Check CI logs for integration issues
+### Test Specific Functionality
+```bash
+./test_runner.sh core
+./test_runner.sh test_core.bats
+```
+
+### Development Workflow
+```bash
+# During development
+./test_runner.sh --quick
+
+# Before commit
+./test_runner.sh --parallel all
+
+# For release
+./test_runner.sh --coverage --parallel all
+```
