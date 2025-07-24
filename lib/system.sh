@@ -63,9 +63,15 @@ dependency_check() {
             printf "  • %s - %s\n" "$pkg" "${REQUIRED_PKGS[$pkg]}"
         done
         
-        if [[ "${AUTO_MODE:-false}" == "true" ]]; then
-            log "Installing missing required packages..."
-            pkg_mgr_run -S --noconfirm "${missing_required[@]}"
+        if [[ "${AUTO_MODE:-false}" == "true" ]] || [[ "${XANADOS_AUTO_MODE:-false}" == "true" ]]; then
+            # Use pre-collected preference from GUI or default to install
+            local install_req="${XANADOS_INSTALL_MISSING:-Y}"
+            if [[ ! ${install_req,,} =~ ^n ]]; then
+                log "Installing missing required packages..."
+                pkg_mgr_run -S --noconfirm "${missing_required[@]}"
+            else
+                log "Skipping installation of missing required packages per user preference"
+            fi
         else
             read -rp "Install missing required packages? [Y/n] " install_req
             if [[ ! ${install_req,,} =~ ^n ]]; then
@@ -81,7 +87,16 @@ dependency_check() {
             printf "  • %s - %s\n" "$pkg" "${OPTIONAL_PKGS[$pkg]}"
         done
         
-        if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+        if [[ "${AUTO_MODE:-false}" == "true" ]] || [[ "${XANADOS_AUTO_MODE:-false}" == "true" ]]; then
+            # Use pre-collected preference from GUI or default to not install optional packages
+            local install_opt="${XANADOS_INSTALL_OPTIONAL:-N}"
+            if [[ ${install_opt,,} =~ ^y ]]; then
+                log "Installing optional packages per user preference..."
+                pkg_mgr_run -S --needed "${missing_optional[@]}"
+            else
+                log "Skipping optional packages per user preference"
+            fi
+        else
             read -rp "Install optional packages? [y/N] " install_opt
             if [[ ${install_opt,,} =~ ^y ]]; then
                 pkg_mgr_run -S --needed "${missing_optional[@]}"
@@ -138,7 +153,16 @@ check_system_resources() {
     available_memory=$(free -m | awk 'NR==2{print $7}')
     if (( available_memory < 1000 )); then  # Less than 1GB
         warning "Low available memory: ${available_memory}MB"
-        if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+        if [[ "${AUTO_MODE:-false}" == "true" ]] || [[ "${XANADOS_AUTO_MODE:-false}" == "true" ]]; then
+            # Use pre-collected preference from GUI
+            local continue_low_mem="${XANADOS_CONTINUE_LOW_RESOURCES:-N}"
+            if [[ ! ${continue_low_mem,,} =~ ^y ]]; then
+                error "Aborting due to low memory (per user preference)"
+                exit 1
+            else
+                log "Continuing with low memory per user preference"
+            fi
+        else
             read -rp "Continue with low memory? [y/N] " continue_low_mem
             if [[ ! ${continue_low_mem,,} =~ ^y ]]; then
                 error "Aborting due to low memory"
@@ -153,7 +177,16 @@ check_system_resources() {
     local available_gb=$((available_space / 1024 / 1024))
     if (( available_gb < 5 )); then  # Less than 5GB
         warning "Low disk space: ${available_gb}GB available"
-        if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+        if [[ "${AUTO_MODE:-false}" == "true" ]] || [[ "${XANADOS_AUTO_MODE:-false}" == "true" ]]; then
+            # Use pre-collected preference from GUI
+            local continue_low_space="${XANADOS_CONTINUE_LOW_RESOURCES:-N}"
+            if [[ ! ${continue_low_space,,} =~ ^y ]]; then
+                error "Aborting due to low disk space (per user preference)"
+                exit 1
+            else
+                log "Continuing with low disk space per user preference"
+            fi
+        else
             read -rp "Continue with low disk space? [y/N] " continue_low_space
             if [[ ! ${continue_low_space,,} =~ ^y ]]; then
                 error "Aborting due to low disk space"
@@ -229,7 +262,16 @@ check_failed_services() {
             printf "  • %s\n" "$service"
         done
         
-        if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+        if [[ "${AUTO_MODE:-false}" == "true" ]] || [[ "${XANADOS_AUTO_MODE:-false}" == "true" ]]; then
+            # Use pre-collected preference from GUI
+            local show_details="${XANADOS_SHOW_DETAILS:-N}"
+            if [[ ${show_details,,} =~ ^y ]]; then
+                log "Showing detailed status for failed services per user preference"
+                systemctl --failed
+            else
+                log "Skipping detailed service status per user preference"
+            fi
+        else
             read -rp "Show detailed status for failed services? [y/N] " show_details
             if [[ ${show_details,,} =~ ^y ]]; then
                 systemctl --failed

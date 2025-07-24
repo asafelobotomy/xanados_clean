@@ -1,5 +1,0 @@
-#!/bin/bash
-# xanados_gui - Zenity GUI launcher for xanadOS Clean
-APPDIR="${APPDIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
-export XANADOS_SCRIPT_PATH="$APPDIR/usr/share/xanados_clean/xanados_clean.sh"
-exec "$APPDIR/usr/share/xanados_clean/gui/zenity_gui.sh" "$@"

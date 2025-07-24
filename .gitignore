@@ -1,2 +1,19 @@
 node_modules/
 .npm/
+
+# Build artifacts
+*.AppImage
+appimagetool
+squashfs-root/
+*.AppDir/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db

@@ -1,5 +1,5 @@
 #!/bin/bash
-# zenity_gui.sh - Native GUI for xanadOS Clean using Zenity
+# zenity_gui.sh - Interactive GUI for xanadOS Clean using Zenity with real-time prompt handling
 # Author: GitHub Copilot
 # Version: 2.0.0
 
@@ -11,9 +11,11 @@ TEMP_DIR=$(mktemp -d -t xanados_clean.XXXXXX)
 OUTPUT_FILE="${TEMP_DIR}/output.log"
 PROGRESS_FILE="${TEMP_DIR}/progress.txt"
 PID_FILE="${TEMP_DIR}/maintenance.pid"
+INPUT_PIPE="${TEMP_DIR}/input.fifo"
+PROMPT_PIPE="${TEMP_DIR}/prompt.fifo"
 
-# Create temp directory (already created by mktemp)
-# mkdir -p "$TEMP_DIR" # Not needed with mktemp -d
+# Create named pipes for interactive communication
+mkfifo "$INPUT_PIPE" "$PROMPT_PIPE"
 
 # Cleanup function
 cleanup() {
@@ -28,7 +30,106 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Check for dependencies
+# Real-time interactive prompt handler
+handle_interactive_prompts() {
+    local output_line="$1"
+    local response=""
+    
+    # Detect various types of prompts and show appropriate Zenity dialogs
+    if [[ "$output_line" =~ Select\ option\ \[1\]: ]] || [[ "$output_line" =~ ^[0-3]\).*Exit$ ]]; then
+        # Main menu prompt
+        response=$(zenity --list \
+            --title="Maintenance Mode" \
+            --text="Choose maintenance operation:" \
+            --column="Option" \
+            --column="Description" \
+            --width=500 \
+            --height=300 \
+            "1" "Full maintenance (recommended)" \
+            "2" "Custom selection" \
+            "3" "Simple mode" \
+            "0" "Exit")
+        case "$response" in
+            "1") echo "1" ;;
+            "2") echo "2" ;;
+            "3") echo "3" ;;
+            "0"|"") echo "0" ;;
+            *) echo "1" ;;
+        esac
+        
+    elif [[ "$output_line" =~ Install\ missing\ required\ packages\?.*\[Y/n\] ]]; then
+        # Package installation prompt
+        if zenity --question \
+            --title="Package Installation" \
+            --text="Install missing required packages?" \
+            --width=400; then
+            echo "Y"
+        else
+            echo "n"
+        fi
+        
+    elif [[ "$output_line" =~ Install\ optional\ packages\?.*\[y/N\] ]]; then
+        # Optional packages prompt
+        if zenity --question \
+            --title="Optional Packages" \
+            --text="Install optional enhancement packages?" \
+            --width=400; then
+            echo "y"
+        else
+            echo "N"
+        fi
+        
+    elif [[ "$output_line" =~ Continue\ with\ low\ memory\?.*\[y/N\] ]]; then
+        # Low memory prompt
+        if zenity --question \
+            --title="Low Memory Warning" \
+            --text="System has low available memory. Continue anyway?" \
+            --width=400; then
+            echo "y"
+        else
+            echo "N"
+        fi
+        
+    elif [[ "$output_line" =~ Continue\ with\ low\ disk\ space\?.*\[y/N\] ]]; then
+        # Low disk space prompt
+        if zenity --question \
+            --title="Low Disk Space Warning" \
+            --text="System has low available disk space. Continue anyway?" \
+            --width=400; then
+            echo "y"
+        else
+            echo "N"
+        fi
+        
+    elif [[ "$output_line" =~ Show\ detailed\ status.*\[y/N\] ]]; then
+        # Show details prompt
+        if zenity --question \
+            --title="Show Details" \
+            --text="Show detailed status information?" \
+            --width=400; then
+            echo "y"
+        else
+            echo "N"
+        fi
+        
+    elif [[ "$output_line" =~ Run.*\?.*\[Y/n\] ]]; then
+        # Generic "Run [operation]?" prompt (for ASK_EACH mode)
+        local operation
+        operation=$(echo "$output_line" | sed -n 's/.*Run \(.*\)? \[Y\/n\].*/\1/p')
+        if zenity --question \
+            --title="Confirm Operation" \
+            --text="Run: $operation?" \
+            --width=400; then
+            echo "Y"
+        else
+            echo "n"
+        fi
+        
+    else
+        # Unknown prompt - default to enter/yes
+        echo ""
+    fi
+}
 check_dependencies() {
     local missing=()
     
@@ -74,64 +175,142 @@ Click OK to continue to the configuration screen.
 
 # Configuration dialog
 show_config_dialog() {
-    local config
-    config=$(zenity --forms \
-        --title="xanadOS Clean - Configuration" \
-        --text="Configure your maintenance session:
-        
-(This dialog will use defaults in 60 seconds if no selection is made)" \
-        --add-combo="Operation Mode:" --combo-values="Interactive|Automatic|Simple" \
-        --add-combo="Safety Mode:" --combo-values="Test Mode (Safe)|Live Mode (Apply Changes)" \
-        --add-combo="Display Mode:" --combo-values="Progress Bar|Live Console Output" \
-        --add-combo="Verbosity:" --combo-values="Normal|Verbose|Quiet" \
-        --add-combo="Backup:" --combo-values="Create Backup|Skip Backup" \
-        --separator="|" \
-        --width=500 \
-        --height=400 \
+    # First, ask for basic operation mode
+    local operation_mode
+    operation_mode=$(zenity --list \
+        --title="xanadOS Clean - Operation Mode" \
+        --text="Select your maintenance operation:" \
+        --column="Mode" \
+        --column="Description" \
+        --width=600 \
+        --height=300 \
+        "Full Maintenance" "Complete system maintenance (recommended)" \
+        "Custom Selection" "Choose specific maintenance tasks" \
+        "Simple Mode" "Basic cleanup only (safest)" \
         --timeout=60)
     
-    local dialog_result=$?
-    if [[ $dialog_result -eq 5 ]]; then
-        # Timeout occurred, use defaults
-        config="Interactive|Test Mode (Safe)|Progress Bar|Normal|Create Backup"
-    elif [[ $dialog_result -ne 0 ]]; then
+    # Handle timeout or cancellation
+    if [[ $? -eq 5 ]]; then
+        operation_mode="Full Maintenance"
+    elif [[ $? -ne 0 ]]; then
         exit 0
     fi
     
+    # Collect additional preferences based on operation mode
+    
+    # Safety mode
+    local safety_mode
+    safety_mode=$(zenity --list \
+        --title="Safety Mode" \
+        --text="Choose safety level:" \
+        --column="Mode" \
+        --column="Description" \
+        --width=500 \
+        --height=250 \
+        "Test Mode" "Preview changes without applying (SAFE)" \
+        "Live Mode" "Apply changes to system" \
+        --timeout=30)
+    
+    if [[ $? -eq 5 ]] || [[ -z "$safety_mode" ]]; then
+        safety_mode="Test Mode"
+    fi
+    
+    # Display mode
+    local display_mode
+    display_mode=$(zenity --list \
+        --title="Display Mode" \
+        --text="How would you like to monitor progress?" \
+        --column="Mode" \
+        --column="Description" \
+        --width=500 \
+        --height=250 \
+        "Live Console Output" "Show real-time terminal output (recommended)" \
+        "Progress Bar" "Simple progress indicator" \
+        --timeout=30)
+    
+    if [[ $? -eq 5 ]] || [[ -z "$display_mode" ]]; then
+        display_mode="Live Console Output"
+    fi
+    
+    # Pre-collect answers for common interactive prompts
+    local install_missing="Y"
+    local install_optional="N"
+    local continue_low_resources="N"
+    local show_details="N"
+    
+    # If in live mode, ask about potentially risky operations
+    if [[ "$safety_mode" == "Live Mode" ]]; then
+        if zenity --question \
+            --title="Package Installation" \
+            --text="If missing required packages are found, should they be automatically installed?" \
+            --width=400; then
+            install_missing="Y"
+        else
+            install_missing="N"
+        fi
+        
+        if zenity --question \
+            --title="Optional Packages" \
+            --text="Install optional enhancement packages if available?" \
+            --width=400; then
+            install_optional="Y"
+        else
+            install_optional="N"
+        fi
+        
+        if zenity --question \
+            --title="Resource Limits" \
+            --text="Continue maintenance even if system resources are low (memory/disk)?" \
+            --width=400; then
+            continue_low_resources="Y"
+        else
+            continue_low_resources="N"
+        fi
+    fi
+    
+    # Build configuration string
+    local config="${operation_mode}|${safety_mode}|${display_mode}|${install_missing}|${install_optional}|${continue_low_resources}|${show_details}"
     echo "$config"
 }
 
-# Parse configuration
+# Parse configuration and prepare for execution
 parse_config() {
     local config="$1"
-    IFS='|' read -r operation_mode safety_mode display_mode verbosity backup_mode <<< "$config"
+    IFS='|' read -r operation_mode safety_mode display_mode install_missing install_optional continue_low_resources show_details <<< "$config"
     
     # Set command arguments based on configuration
     COMMAND_ARGS=()
     
+    # Use --auto to prevent interactive menu prompts (our fix should handle this)
+    COMMAND_ARGS+=("--auto")
+    
     case "$operation_mode" in
-        "Automatic") COMMAND_ARGS+=("--auto") ;;
-        "Simple") COMMAND_ARGS+=("--simple" "--auto") ;;
-        "Interactive") COMMAND_ARGS+=("--auto") ;; # GUI always needs --auto to prevent menu prompts
+        "Simple Mode") COMMAND_ARGS+=("--simple") ;;
+        "Custom Selection") COMMAND_ARGS+=("--ask-each") ;;
+        "Full Maintenance") ;; # Default - full maintenance
     esac
     
     case "$safety_mode" in
-        "Test Mode (Safe)") COMMAND_ARGS+=("--test-mode") ;;
-        "Live Mode (Apply Changes)") ;; # Default
+        "Test Mode") COMMAND_ARGS+=("--test-mode") ;;
+        "Live Mode") ;; # Default - apply changes
     esac
     
-    case "$verbosity" in
-        "Verbose") COMMAND_ARGS+=("--verbose") ;;
-        "Quiet") ;; # Could add quiet flag if implemented
-        "Normal") ;; # Default
+    # Set display mode for progress monitoring
+    case "$display_mode" in
+        "Live Console Output") 
+            DISPLAY_MODE="console"
+            ;;
+        "Progress Bar") 
+            DISPLAY_MODE="progress"
+            ;;
+        *) 
+            DISPLAY_MODE="console"
+            ;;
     esac
     
     # Store for later use
     OPERATION_MODE="$operation_mode"
     SAFETY_MODE="$safety_mode"
-    DISPLAY_MODE="$display_mode"
-    VERBOSITY="$verbosity"
-    BACKUP_MODE="$backup_mode"
 }
 
 # Show operation confirmation
@@ -627,7 +806,42 @@ monitor_progress() {
 }
 
 # Run maintenance with real-time monitoring
-run_maintenance() {
+# Monitor output for interactive prompts and respond via GUI
+monitor_and_respond() {
+    local maintenance_pid="$1"
+    
+    # Start prompt detection in background
+    {
+        while IFS= read -r line; do
+            echo "$line" >> "$OUTPUT_FILE"
+            
+            # Check if this line contains an interactive prompt
+            if [[ "$line" =~ \[.*\].*$ ]] && [[ "$line" =~ \? ]]; then
+                # This looks like a prompt - handle it
+                local response
+                response=$(handle_interactive_prompts "$line")
+                if [[ -n "$response" ]]; then
+                    # Send the response to the maintenance script
+                    echo "$response" > "$INPUT_PIPE" &
+                fi
+            fi
+        done
+    } &
+    
+    local monitor_pid=$!
+    
+    # Wait for maintenance to complete
+    wait "$maintenance_pid"
+    local exit_code=$?
+    
+    # Clean up monitor
+    kill "$monitor_pid" 2>/dev/null || true
+    
+    return $exit_code
+}
+
+# Run maintenance with interactive GUI responses
+run_maintenance_interactive() {
     # Check pacman lock if not in test mode
     if [[ "$SAFETY_MODE" != "Test Mode (Safe)" ]]; then
         if ! check_pacman_lock; then
@@ -667,8 +881,11 @@ run_maintenance() {
         sleep 0.5
         echo "[+] Starting maintenance operations..." >> "$OUTPUT_FILE"
         
-        # Use stdbuf to force unbuffered output for immediate display
-        stdbuf -o0 -e0 "${MAIN_SCRIPT}" "${COMMAND_ARGS[@]}" 2>&1 | stdbuf -o0 tee -a "$OUTPUT_FILE"
+        # Use stdbuf to force unbuffered output and pipe a default response for the main menu
+        {
+            sleep 2  # Give script time to start
+            echo "1"  # Automatically select "Full maintenance"
+        } | stdbuf -o0 -e0 "${MAIN_SCRIPT}" "${COMMAND_ARGS[@]}" 2>&1 | stdbuf -o0 tee -a "$OUTPUT_FILE"
         echo $? > "${TEMP_DIR}/exit_code"
     ) &
     

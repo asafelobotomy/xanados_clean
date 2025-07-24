@@ -1,4 +1,0 @@
-#!/bin/bash
-APPDIR="${APPDIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
-export XANADOS_SCRIPT_PATH="$APPDIR/usr/bin/xanados_clean.sh"
-exec "$APPDIR/usr/share/xanados_clean/gui/launch_gui.sh" "$@"

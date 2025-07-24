@@ -47,6 +47,17 @@ TEST_MODE="${TEST_MODE:-false}"
 # Set defaults if not loaded by configuration system
 LOG_FILE="${LOG_FILE:-${HOME}/Documents/system_maint.log}"
 AUTO_MODE="${AUTO_MODE:-false}"
+ASK_EACH_STEP="${ASK_EACH_STEP:-false}"
+
+# Backup settings defaults
+BACKUP_METHOD="${BACKUP_METHOD:-auto}"
+BACKUP_SKIP_THRESHOLD_DAYS="${BACKUP_SKIP_THRESHOLD_DAYS:-30}"
+
+# Maintenance options defaults
+ENABLE_FLATPAK="${ENABLE_FLATPAK:-true}"
+ENABLE_SECURITY_SCAN="${ENABLE_SECURITY_SCAN:-true}"
+ENABLE_ORPHAN_REMOVAL="${ENABLE_ORPHAN_REMOVAL:-true}"
+ENABLE_CACHE_CLEANUP="${ENABLE_CACHE_CLEANUP:-true}"
 
 # Ensure log directory exists
 [[ -d "${HOME}/Documents" ]] || LOG_FILE="${HOME}/system_maint.log"
@@ -111,12 +122,14 @@ main_menu() {
     return
   fi
   
-  echo -e "\n1) Full maintenance\n2) Custom selection\n3) Simple mode\n0) Exit"
-  if [[ ${AUTO_MODE} != true ]]; then
-    read -rp "Select option [1]: " choice
-  else
-    choice="1"
+  # Skip menu in auto mode - default to full maintenance
+  if [[ "${AUTO_MODE:-false}" == "true" ]]; then
+    ASK_EACH=false
+    return
   fi
+  
+  echo -e "\n1) Full maintenance\n2) Custom selection\n3) Simple mode\n0) Exit"
+  read -rp "Select option [1]: " choice
   case "$choice" in
     0) exit 0 ;;
     2) ASK_EACH=true ;;

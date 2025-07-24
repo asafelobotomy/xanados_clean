@@ -10,8 +10,7 @@
     "lint:sh": "shellcheck *.sh lib/*.sh tests/*.bash",
     "lint": "npm run lint:md && npm run lint:sh",
     "build": "./build_appimage.sh xanados_clean.sh",
-    "build:gui": "./build_gui_appimage.sh",
-    "gui": "./gui/launch_gui.sh",
+    "gui": "./gui/zenity_gui.sh",
     "docs": "echo 'Documentation available in docs/ directory'",
     "config": "echo 'Run ./xanados_clean.sh --create-config to create default config'"
   },
