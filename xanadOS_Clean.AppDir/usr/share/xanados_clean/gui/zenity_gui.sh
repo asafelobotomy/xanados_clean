@@ -82,17 +82,18 @@ show_config_dialog() {
 (This dialog will use defaults in 60 seconds if no selection is made)" \
         --add-combo="Operation Mode:" --combo-values="Interactive|Automatic|Simple" \
         --add-combo="Safety Mode:" --combo-values="Test Mode (Safe)|Live Mode (Apply Changes)" \
+        --add-combo="Display Mode:" --combo-values="Progress Bar|Live Console Output" \
         --add-combo="Verbosity:" --combo-values="Normal|Verbose|Quiet" \
         --add-combo="Backup:" --combo-values="Create Backup|Skip Backup" \
         --separator="|" \
         --width=500 \
-        --height=350 \
+        --height=400 \
         --timeout=60)
     
     local dialog_result=$?
     if [[ $dialog_result -eq 5 ]]; then
         # Timeout occurred, use defaults
-        config="Interactive|Test Mode (Safe)|Normal|Create Backup"
+        config="Interactive|Test Mode (Safe)|Progress Bar|Normal|Create Backup"
     elif [[ $dialog_result -ne 0 ]]; then
         exit 0
     fi
@@ -103,7 +104,7 @@ show_config_dialog() {
 # Parse configuration
 parse_config() {
     local config="$1"
-    IFS='|' read -r operation_mode safety_mode verbosity backup_mode <<< "$config"
+    IFS='|' read -r operation_mode safety_mode display_mode verbosity backup_mode <<< "$config"
     
     # Set command arguments based on configuration
     COMMAND_ARGS=()
@@ -128,6 +129,7 @@ parse_config() {
     # Store for later use
     OPERATION_MODE="$operation_mode"
     SAFETY_MODE="$safety_mode"
+    DISPLAY_MODE="$display_mode"
     VERBOSITY="$verbosity"
     BACKUP_MODE="$backup_mode"
 }
@@ -137,6 +139,8 @@ show_confirmation() {
     local message="Ready to start system maintenance with the following configuration:
 
 Operation Mode: $OPERATION_MODE
+Safety Mode: $SAFETY_MODE
+Display Mode: $DISPLAY_MODE
 Safety Mode: $SAFETY_MODE  
 Verbosity: $VERBOSITY
 Backup: $BACKUP_MODE
@@ -316,6 +320,131 @@ Active package manager processes detected - lock is legitimate." \
     fi
     
     return 0
+}
+
+# Real-time console output monitoring function
+monitor_console_output() {
+    local monitoring_timeout=1800  # 30 minutes maximum
+    local monitoring_start=$(date +%s)
+    local last_activity=$(date +%s)
+    local activity_timeout=300  # 5 minutes of no activity
+    local last_line_count=0
+    
+    # Wait for output file to be created
+    local timeout_counter=0
+    while [[ ! -s "$OUTPUT_FILE" && $timeout_counter -lt 15 ]]; do
+        sleep 1
+        ((timeout_counter++))
+    done
+    
+    # Create a temporary file for zenity text display
+    local display_file="${TEMP_DIR}/console_display.txt"
+    echo "=== xanadOS Clean Console Output ===" > "$display_file"
+    echo "Initializing system maintenance..." >> "$display_file"
+    echo "" >> "$display_file"
+    
+    # Start zenity text-info dialog in background
+    (
+        tail -f "$display_file" 2>/dev/null
+    ) | zenity --text-info \
+        --title="xanadOS Clean - Live Console Output" \
+        --width=800 \
+        --height=600 \
+        --font="monospace 10" \
+        --auto-scroll \
+        --no-wrap &
+    
+    local zenity_pid=$!
+    
+    # Monitor output file and update display
+    (
+        while IFS= read -r line; do
+            # Check for activity and process status
+            local current_time
+            current_time=$(date +%s)
+            local current_line_count
+            current_line_count=$(wc -l < "$OUTPUT_FILE" 2>/dev/null || echo 0)
+            
+            if [[ $current_line_count -gt $last_line_count ]]; then
+                last_activity=$current_time
+                last_line_count=$current_line_count
+            fi
+            
+            # Check if maintenance process is still running
+            local maintenance_pid
+            local process_running=false
+            if [[ -f "$PID_FILE" ]]; then
+                maintenance_pid=$(cat "$PID_FILE" 2>/dev/null)
+                if [[ -n "$maintenance_pid" ]] && kill -0 "$maintenance_pid" 2>/dev/null; then
+                    process_running=true
+                fi
+            fi
+            
+            # Check for timeouts
+            local time_since_activity=$((current_time - last_activity))
+            local total_time=$((current_time - monitoring_start))
+            
+            if [[ $total_time -gt $monitoring_timeout ]]; then
+                echo "" >> "$display_file"
+                echo "=== TIMEOUT: Maximum maintenance time reached (30 minutes) ===" >> "$display_file"
+                echo "Operation completed due to timeout." >> "$display_file"
+                break
+            elif [[ $time_since_activity -gt $activity_timeout && "$process_running" == "false" ]]; then
+                echo "" >> "$display_file"
+                echo "=== Process appears to have completed or stopped ===" >> "$display_file"
+                break
+            fi
+            
+            # Clean and display the line
+            local clean_line
+            clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g')
+            
+            # Add timestamp for better tracking
+            local timestamp
+            timestamp=$(date "+%H:%M:%S")
+            
+            # Check for completion indicators
+            if [[ "$line" =~ "System maintenance complete"|"Maintenance Complete"|"completed successfully" ]]; then
+                echo "[$timestamp] $clean_line" >> "$display_file"
+                echo "" >> "$display_file"
+                echo "=== MAINTENANCE COMPLETED SUCCESSFULLY ===" >> "$display_file"
+                break
+            elif [[ "$line" =~ "0\) Exit"|"Select option"|"Choose an option" ]]; then
+                echo "[$timestamp] $clean_line" >> "$display_file"
+                echo "" >> "$display_file"
+                echo "=== Interactive menu detected - completing operation ===" >> "$display_file"
+                echo "=== MAINTENANCE COMPLETED ===" >> "$display_file"
+                break
+            else
+                # Regular output line
+                if [[ -n "$clean_line" && "$clean_line" != *"[sudo]"* ]]; then
+                    echo "[$timestamp] $clean_line" >> "$display_file"
+                fi
+            fi
+            
+        done < <(tail -f "$OUTPUT_FILE" 2>/dev/null)
+        
+        # Final status
+        echo "" >> "$display_file"
+        echo "=== Console monitoring completed at $(date) ===" >> "$display_file"
+        
+        # Keep zenity window open for a moment to show completion
+        sleep 3
+        kill "$zenity_pid" 2>/dev/null
+        
+    ) &
+    
+    local monitor_pid=$!
+    
+    # Wait for either zenity to close (user cancellation) or monitoring to complete
+    wait "$zenity_pid" 2>/dev/null
+    local zenity_exit=$?
+    
+    # Clean up monitoring process
+    kill "$monitor_pid" 2>/dev/null
+    wait "$monitor_pid" 2>/dev/null
+    
+    return $zenity_exit
 }
 
 # Progress monitoring function
@@ -549,17 +678,23 @@ run_maintenance() {
     # Give the script a moment to start and create output
     sleep 1
     
-    # Monitor progress
-    monitor_progress
-    local progress_exit=$?
+    # Monitor progress using selected display mode
+    local monitor_exit
+    if [[ "${DISPLAY_MODE:-Progress Bar}" == "Live Console Output" ]]; then
+        monitor_console_output
+        monitor_exit=$?
+    else
+        monitor_progress
+        monitor_exit=$?
+    fi
     
     # Wait for maintenance to complete
     wait "$maintenance_pid"
     local maintenance_exit
     maintenance_exit=$(cat "${TEMP_DIR}/exit_code" 2>/dev/null || echo "1")
     
-    # If user cancelled progress dialog
-    if [[ $progress_exit -ne 0 ]]; then
+    # If user cancelled dialog
+    if [[ $monitor_exit -ne 0 ]]; then
         kill "$maintenance_pid" 2>/dev/null
         zenity --question \
             --title="Operation Cancelled" \
@@ -666,6 +801,7 @@ show_main_menu() {
                 COMMAND_ARGS=("--simple" "--auto" "--test-mode")
                 OPERATION_MODE="Simple"
                 SAFETY_MODE="Test Mode (Safe)"
+                DISPLAY_MODE="Live Console Output"  # Use console output for quick cleanup to show activity
                 if show_confirmation; then
                     if run_maintenance; then
                         show_results 0
@@ -676,6 +812,7 @@ show_main_menu() {
                 ;;
             "System Report")
                 COMMAND_ARGS=("--performance")
+                DISPLAY_MODE="Live Console Output"  # Use console output for reports
                 if run_maintenance; then
                     show_results 0
                 else
