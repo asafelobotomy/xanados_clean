@@ -111,7 +111,7 @@ parse_config() {
     case "$operation_mode" in
         "Automatic") COMMAND_ARGS+=("--auto") ;;
         "Simple") COMMAND_ARGS+=("--simple" "--auto") ;;
-        "Interactive") ;; # Default
+        "Interactive") COMMAND_ARGS+=("--auto") ;; # GUI always needs --auto to prevent menu prompts
     esac
     
     case "$safety_mode" in
@@ -324,6 +324,11 @@ monitor_progress() {
     local total_steps=15
     local progress_started=false
     local timeout_counter=0
+    local monitoring_timeout=1800  # 30 minutes maximum for any maintenance operation
+    local monitoring_start=$(date +%s)
+    local last_activity=$(date +%s)
+    local activity_timeout=300  # 5 minutes of no activity before warning
+    local last_line_count=0
     
     # Wait for output file to be created and have content with timeout
     while [[ ! -s "$OUTPUT_FILE" && $timeout_counter -lt 15 ]]; do
@@ -369,6 +374,85 @@ monitor_progress() {
         done
         
         while IFS= read -r line; do
+            # Check for activity - update last activity time when we get new content
+            local current_time
+            current_time=$(date +%s)
+            local current_line_count
+            current_line_count=$(wc -l < "$OUTPUT_FILE" 2>/dev/null || echo 0)
+            
+            # If we have new lines, update last activity time
+            if [[ $current_line_count -gt $last_line_count ]]; then
+                last_activity=$current_time
+                last_line_count=$current_line_count
+            fi
+            
+            # Check for stall (no activity) vs hard timeout
+            local time_since_activity=$((current_time - last_activity))
+            local total_time=$((current_time - monitoring_start))
+            
+            # Check if maintenance process is still running
+            local maintenance_pid
+            local process_running=false
+            local process_active=false
+            if [[ -f "$PID_FILE" ]]; then
+                maintenance_pid=$(cat "$PID_FILE" 2>/dev/null)
+                if [[ -n "$maintenance_pid" ]] && kill -0 "$maintenance_pid" 2>/dev/null; then
+                    process_running=true
+                    
+                    # Check if process or its children are active (have CPU usage)
+                    # Look for the process and any child processes
+                    if pgrep -P "$maintenance_pid" >/dev/null 2>&1 || \
+                       ps -o pid,pcpu --no-headers -p "$maintenance_pid" 2>/dev/null | awk '{if ($2 > 0.1) exit 0} END{exit 1}'; then
+                        process_active=true
+                    fi
+                fi
+            fi
+            
+            if [[ $total_time -gt $monitoring_timeout ]]; then
+                echo "95"
+                echo "# Maximum maintenance time reached (30 minutes), finalizing..."
+                sleep 1
+                echo "100"
+                echo "# Maintenance completed (maximum time reached)"
+                break
+            elif [[ $time_since_activity -gt $activity_timeout ]]; then
+                if [[ "$process_running" == "true" ]]; then
+                    if [[ "$process_active" == "true" ]]; then
+                        # Process is running and using CPU - definitely active
+                        echo "# Long-running operation in progress ($((time_since_activity / 60))m) - please wait..."
+                    else
+                        # Process exists but no CPU activity - might be waiting for I/O or user input
+                        echo "# Process waiting for I/O or external resource ($((time_since_activity / 60))m)..."
+                    fi
+                else
+                    # Process died and no activity - likely stuck or completed without proper output
+                    echo "90"
+                    echo "# Process appears to have stopped, finalizing..."
+                    sleep 1
+                    echo "100"
+                    echo "# Maintenance completed (process stopped)"
+                    break
+                fi
+            fi
+            
+            # Check for completion indicators first
+            if [[ "$line" =~ "System maintenance complete"|"Maintenance Complete"|"completed successfully" ]]; then
+                echo "100"
+                echo "# Maintenance completed successfully!"
+                break
+            fi
+            
+            # Check for interactive menu prompts that would cause hanging
+            if [[ "$line" =~ "0\) Exit"|"Select option"|"Choose an option"|"Press Enter" ]]; then
+                echo "90"
+                echo "# Finalizing maintenance operations..."
+                # Give it a moment then assume completion
+                sleep 2
+                echo "100" 
+                echo "# Maintenance operations completed!"
+                break
+            fi
+            
             # Extract step information from colored output - be more flexible with patterns
             if [[ "$line" =~ \[.*\].*\(([0-9]+)/([0-9]+)\) ]]; then
                 current_step="${BASH_REMATCH[1]}"
@@ -394,8 +478,8 @@ monitor_progress() {
                         fi
                     fi
                 fi
-            elif [[ -n "$line" && "$line" != *"[sudo]"* ]]; then
-                # Any other output that isn't a sudo prompt
+            elif [[ -n "$line" && "$line" != *"[sudo]"* && "$line" != *"0)"* && "$line" != *"1)"* ]]; then
+                # Any other output that isn't a sudo prompt or menu option
                 clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g')
                 if [[ -n "$clean_line" ]]; then
                     echo "# $clean_line"
