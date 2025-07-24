@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=XanadOS Arch Cleanup
+Exec=xanadOS_archclean
+Icon=xanadOS_archclean
+Categories=System;Utility;
+Comment=Professional Arch Linux maintenance automation

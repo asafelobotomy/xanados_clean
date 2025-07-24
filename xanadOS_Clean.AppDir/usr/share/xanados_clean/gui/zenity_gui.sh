@@ -64,9 +64,12 @@ This tool will help you maintain your Arch Linux system with automated cleanup, 
 • BTRFS optimization and SSD trimming
 • Performance monitoring
 
-Click OK to continue to the configuration screen." \
+Click OK to continue to the configuration screen.
+
+(This dialog will auto-close in 30 seconds)" \
         --width=500 \
-        --height=300
+        --height=300 \
+        --timeout=30
 }
 
 # Configuration dialog
@@ -74,16 +77,23 @@ show_config_dialog() {
     local config
     config=$(zenity --forms \
         --title="xanadOS Clean - Configuration" \
-        --text="Configure your maintenance session:" \
+        --text="Configure your maintenance session:
+        
+(This dialog will use defaults in 60 seconds if no selection is made)" \
         --add-combo="Operation Mode:" --combo-values="Interactive|Automatic|Simple" \
         --add-combo="Safety Mode:" --combo-values="Test Mode (Safe)|Live Mode (Apply Changes)" \
         --add-combo="Verbosity:" --combo-values="Normal|Verbose|Quiet" \
         --add-combo="Backup:" --combo-values="Create Backup|Skip Backup" \
         --separator="|" \
         --width=500 \
-        --height=350)
+        --height=350 \
+        --timeout=60)
     
-    if [[ $? -ne 0 ]]; then
+    local dialog_result=$?
+    if [[ $dialog_result -eq 5 ]]; then
+        # Timeout occurred, use defaults
+        config="Interactive|Test Mode (Safe)|Normal|Create Backup"
+    elif [[ $dialog_result -ne 0 ]]; then
         exit 0
     fi
     
@@ -396,7 +406,7 @@ monitor_progress() {
         --title="xanadOS Clean - System Maintenance" \
         --text="Initializing system maintenance..." \
         --percentage=0 \
-        --width=600 \
+        --width=650 \
         --height=150 \
         --auto-close
     
@@ -424,11 +434,9 @@ run_maintenance() {
             export TEST_MODE=true
             export SUDO=""
         else
-            # For live mode, set up GUI-friendly sudo environment
-            export SUDO_ASKPASS="${SCRIPT_DIR}/sudo_askpass.sh"
-            export DISPLAY="${DISPLAY:-:0}"
-            # Use sudo with askpass for GUI authentication
-            export SUDO="sudo -A"
+            # For live mode, use our GUI authentication wrapper
+            export SUDO="${SCRIPT_DIR}/gui_sudo.sh"
+            echo "[DEBUG] GUI Mode: Using GUI authentication wrapper at ${SUDO}" >> "$OUTPUT_FILE"
         fi
         
         # Add startup progress indicators
@@ -637,6 +645,20 @@ License: MIT" \
 
 # Main execution
 main() {
+    # Provide immediate feedback that the application is starting
+    echo "[INFO] xanadOS Clean GUI starting..." >&2
+    echo "[INFO] If you see this message, the AppImage is working correctly." >&2
+    echo "[INFO] GUI dialogs should appear shortly..." >&2
+    
+    # Check for --no-welcome parameter
+    local skip_welcome=false
+    for arg in "$@"; do
+        if [[ "$arg" == "--no-welcome" ]]; then
+            skip_welcome=true
+            break
+        fi
+    done
+    
     # Check dependencies
     check_dependencies
     
@@ -648,16 +670,27 @@ main() {
 $MAIN_SCRIPT
 
 Please ensure the xanados_clean.sh script is in the correct location and is executable." \
-            --width=500
+            --width=500 \
+            --timeout=10
         exit 1
     fi
     
     # Check for stale pacman lock files early
-    check_stale_pacman_lock
+    echo "[DEBUG] Checking for stale pacman lock files..." >&2
+    if ! timeout 5s check_stale_pacman_lock; then
+        echo "[DEBUG] Lock check timed out or failed, continuing..." >&2
+    fi
     
-    # Show welcome dialog
-    if ! show_welcome; then
-        exit 0
+    # Show welcome dialog (unless skipped)
+    if [[ "$skip_welcome" == "false" ]]; then
+        echo "[DEBUG] Showing welcome dialog..." >&2
+        if ! show_welcome; then
+            echo "[DEBUG] Welcome dialog cancelled or failed" >&2
+            exit 0
+        fi
+        echo "[DEBUG] Welcome dialog completed successfully" >&2
+    else
+        echo "[INFO] Skipping welcome dialog..." >&2
     fi
     
     # Show main menu

@@ -91,16 +91,19 @@ WRAPPER
   # Copy GUI files
   if [[ -d "gui" ]]; then
     cp -r gui "$APPDIR/usr/share/xanados_clean/"
-    # Make launcher executable
-    chmod +x "$APPDIR/usr/share/xanados_clean/gui/launch_gui.sh"
+    # Make Zenity GUI launcher executable
+    chmod +x "$APPDIR/usr/share/xanados_clean/gui/zenity_gui.sh"
+    # Make sudo askpass script executable
+    chmod +x "$APPDIR/usr/share/xanados_clean/gui/sudo_askpass.sh"
   fi
   
-  # Create GUI launcher in bin
+  # Create GUI launcher in bin (points to Zenity GUI)
   cat > "$APPDIR/usr/bin/xanados_gui" <<'EOF'
 #!/bin/bash
+# xanados_gui - Zenity GUI launcher for xanadOS Clean
 APPDIR="${APPDIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
-export XANADOS_SCRIPT_PATH="$APPDIR/usr/bin/xanados_clean.sh"
-exec "$APPDIR/usr/share/xanados_clean/gui/launch_gui.sh" "$@"
+export XANADOS_SCRIPT_PATH="$APPDIR/usr/share/xanados_clean/xanados_clean.sh"
+exec "$APPDIR/usr/share/xanados_clean/gui/zenity_gui.sh" "$@"
 EOF
   chmod +x "$APPDIR/usr/bin/xanados_gui"
 }
@@ -154,20 +157,54 @@ create_apprun() {
   echo "Creating AppRun..."
   cat > "$APPDIR/AppRun" <<'RUN'
 #!/bin/bash
-HERE="$(dirname "$(readlink -f "$0")")"
+# AppRun for xanadOS Clean - Zenity GUI Version
 
-# Set up environment
-export APPDIR="$HERE"
-export PATH="$HERE/usr/bin:$PATH"
+SELF="$(readlink -f "$0")"
+HERE="${SELF%/*}"
+export PATH="${HERE}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH:-}"
 
-# Check if GUI should be launched (default behavior)
-if [[ $# -eq 0 ]] || [[ "$1" == "--gui" ]]; then
-    # Launch GUI by default
-    exec "$HERE/usr/bin/xanados_gui" "${@:2}"
-else
-    # Launch command line version for other arguments
-    exec "$HERE/usr/bin/xanados_clean.sh" "$@"
-fi
+# Set environment variables for the script
+export XANADOS_SCRIPT_PATH="${HERE}/usr/share/xanados_clean/xanados_clean.sh"
+export XANADOS_GUI_PATH="${HERE}/usr/share/xanados_clean/gui/zenity_gui.sh"
+
+# Check command line arguments
+case "${1:-}" in
+    --gui|"")
+        # Launch GUI mode (default) - Use Zenity GUI
+        if command -v zenity >/dev/null 2>&1; then
+            exec "${HERE}/usr/share/xanados_clean/gui/zenity_gui.sh" "${@:2}"
+        else
+            echo "Error: Zenity is required for GUI mode. Install with: sudo pacman -S zenity"
+            echo "Or run in CLI mode: $0 --cli"
+            exit 1
+        fi
+        ;;
+    --cli)
+        # CLI mode
+        exec "${HERE}/usr/share/xanados_clean/xanados_clean.sh" "${@:2}"
+        ;;
+    --help|-h)
+        # Show help for both modes
+        echo "xanadOS Clean v2.0.0 - Professional Arch Linux system maintenance"
+        echo ""
+        echo "USAGE:"
+        echo "  $0                    Launch GUI (default)"
+        echo "  $0 --gui             Launch GUI explicitly"  
+        echo "  $0 --cli [OPTIONS]   Launch CLI mode"
+        echo ""
+        echo "GUI MODE:"
+        echo "  Interactive dialogs for easy system maintenance"
+        echo "  Native system integration with Zenity"
+        echo ""
+        echo "CLI MODE OPTIONS:"
+        "${HERE}/usr/share/xanados_clean/xanados_clean.sh" --help | tail -n +3
+        ;;
+    *)
+        # Pass all other arguments to CLI
+        exec "${HERE}/usr/share/xanados_clean/xanados_clean.sh" "$@"
+        ;;
+esac
 RUN
   chmod +x "$APPDIR/AppRun"
 }
@@ -193,11 +230,12 @@ build_appimage() {
 }
 
 main() {
-  echo "Building xanadOS Clean AppImage with GUI..."
+  echo "Building xanadOS Clean AppImage with Zenity GUI..."
   
-  # Check dependencies
-  if ! command -v python3 >/dev/null; then
-    echo "Warning: Python 3 not found. GUI may not work on target systems without Python 3."
+  # Check dependencies - Zenity will be checked at runtime
+  if ! command -v zenity >/dev/null; then
+    echo "Warning: Zenity not found. GUI may not work on target systems without Zenity."
+    echo "Install with: sudo pacman -S zenity"
   fi
   
   create_appdir_structure

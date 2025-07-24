@@ -18,27 +18,25 @@ readonly CYAN='\033[1;36m'
 readonly RED='\033[0;31m'
 readonly NC='\033[0m'
 
-# Load library system with configurable path
-LIB_DIR="${XANADOS_LIB_DIR:-$SCRIPT_DIR/lib}"
 # Load new consolidated library system
-if [[ -f "$LIB_DIR/core.sh" ]]; then
+if [[ -f "$SCRIPT_DIR/lib/core.sh" ]]; then
     # shellcheck source=lib/core.sh
-    source "$LIB_DIR/core.sh"
+    source "$SCRIPT_DIR/lib/core.sh"
 fi
 
-if [[ -f "$LIB_DIR/system.sh" ]]; then
+if [[ -f "$SCRIPT_DIR/lib/system.sh" ]]; then
     # shellcheck source=lib/system.sh
-    source "$LIB_DIR/system.sh"
+    source "$SCRIPT_DIR/lib/system.sh"
 fi
 
-if [[ -f "$LIB_DIR/maintenance.sh" ]]; then
+if [[ -f "$SCRIPT_DIR/lib/maintenance.sh" ]]; then
     # shellcheck source=lib/maintenance.sh
-    source "$LIB_DIR/maintenance.sh"
+    source "$SCRIPT_DIR/lib/maintenance.sh"
 fi
 
-if [[ -f "$LIB_DIR/extensions.sh" ]]; then
+if [[ -f "$SCRIPT_DIR/lib/extensions.sh" ]]; then
     # shellcheck source=lib/extensions.sh
-    source "$LIB_DIR/extensions.sh"
+    source "$SCRIPT_DIR/lib/extensions.sh"
 fi
 
 # Initialize variables

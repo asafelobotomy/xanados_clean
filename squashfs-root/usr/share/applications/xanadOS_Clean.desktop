@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=xanadOS Clean
+GenericName=Arch Linux Maintenance
+Exec=xanados_gui
+Icon=xanadOS_Clean
+Categories=System;
+Comment=Professional Arch Linux maintenance automation with GUI
+Keywords=arch;linux;maintenance;system;administration;automation;package;management;security;backup;pacman;aur;
+StartupNotify=true
+Terminal=false

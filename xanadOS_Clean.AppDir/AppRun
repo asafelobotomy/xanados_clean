@@ -1,5 +1,5 @@
 #!/bin/bash
-# AppRun for xanadOS Clean
+# AppRun for xanadOS Clean - Zenity GUI Version
 
 SELF="$(readlink -f "$0")"
 HERE="${SELF%/*}"
@@ -13,20 +13,12 @@ export XANADOS_GUI_PATH="${HERE}/usr/share/xanados_clean/gui/zenity_gui.sh"
 # Check command line arguments
 case "${1:-}" in
     --gui|"")
-        # Launch GUI mode (default)
+        # Launch GUI mode (default) - Use Zenity GUI
         if command -v zenity >/dev/null 2>&1; then
             exec "${HERE}/usr/share/xanados_clean/gui/zenity_gui.sh" "${@:2}"
         else
-            zenity --error \
-                --title="Missing Dependency" \
-                --text="Zenity is required for the GUI but is not installed.
-
-Please install zenity:
-sudo pacman -S zenity
-
-Or run in CLI mode:
-$0 --cli" 2>/dev/null || \
             echo "Error: Zenity is required for GUI mode. Install with: sudo pacman -S zenity"
+            echo "Or run in CLI mode: $0 --cli"
             exit 1
         fi
         ;;
