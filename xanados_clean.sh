@@ -68,7 +68,10 @@ if (( EUID == 0 )); then
     exit 1
   fi
 else
-  SUDO="sudo"
+  # Check if SUDO is already set by GUI (don't override it)
+  if [[ -z "${SUDO:-}" ]]; then
+    SUDO="sudo"
+  fi
   USER_CMD=()
 fi
 

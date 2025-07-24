@@ -312,11 +312,52 @@ Active package manager processes detected - lock is legitimate." \
 monitor_progress() {
     local current_step=0
     local total_steps=15
-    local last_line=""
     local progress_started=false
+    local timeout_counter=0
+    
+    # Wait for output file to be created and have content with timeout
+    while [[ ! -s "$OUTPUT_FILE" && $timeout_counter -lt 15 ]]; do
+        sleep 1
+        ((timeout_counter++))
+    done
+    
+    # If timeout reached, show warning but continue
+    if [[ $timeout_counter -ge 15 && ! -s "$OUTPUT_FILE" ]]; then
+        echo "[WARNING] Script taking longer than expected to start" >> "$OUTPUT_FILE"
+        echo "[INFO] This may indicate system resource constraints" >> "$OUTPUT_FILE"
+        echo "[INFO] Please wait while the system initializes..." >> "$OUTPUT_FILE"
+    fi
     
     # Start progress dialog in background
     (
+        # Send initial status immediately
+        echo "1"
+        echo "# Initializing xanadOS Clean..."
+        
+        # Show initialization progress while waiting for output
+        local init_counter=0
+        local init_messages=(
+            "Loading libraries and extensions..."
+            "Parsing command line arguments..."
+            "Checking system requirements..."
+            "Initializing performance monitoring..."
+            "Checking system resources..."
+            "Loading configuration files..."
+            "Setting up package manager..."
+            "Starting maintenance operations..."
+        )
+        
+        # Show initialization progress while waiting for real output
+        while [[ $init_counter -lt ${#init_messages[@]} && $timeout_counter -lt 8 ]]; do
+            if [[ -s "$OUTPUT_FILE" ]]; then
+                break  # Real output available, stop simulated progress
+            fi
+            echo "$((2 + init_counter * 8 / ${#init_messages[@]}))"
+            echo "# ${init_messages[init_counter]}"
+            sleep 1
+            ((init_counter++))
+        done
+        
         while IFS= read -r line; do
             # Extract step information from colored output - be more flexible with patterns
             if [[ "$line" =~ \[.*\].*\(([0-9]+)/([0-9]+)\) ]]; then
@@ -332,10 +373,13 @@ monitor_progress() {
                 clean_line=$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^\[.\] //')
                 if [[ -n "$clean_line" ]]; then
                     echo "# $clean_line"
-                    last_line="$clean_line"
                     # If we haven't started progress yet, estimate based on content
                     if [[ "$progress_started" == "false" ]]; then
                         if [[ "$clean_line" =~ optimization|package|update|cache ]]; then
+                            echo "15"
+                        elif [[ "$clean_line" =~ maintenance|Starting|Initializing ]]; then
+                            echo "12"
+                        elif [[ "$clean_line" =~ Loading|Checking|Setting ]]; then
                             echo "10"
                         fi
                     fi
@@ -347,7 +391,7 @@ monitor_progress() {
                     echo "# $clean_line"
                 fi
             fi
-        done < <(tail -f "$OUTPUT_FILE" 2>/dev/null || echo "# Starting...")
+        done < <(tail -f "$OUTPUT_FILE" 2>/dev/null || echo "# Starting maintenance process...")
     ) | zenity --progress \
         --title="xanadOS Clean - System Maintenance" \
         --text="Initializing system maintenance..." \
@@ -368,15 +412,42 @@ run_maintenance() {
         fi
     fi
     
+    # Initialize output file with immediate content
+    echo "[+] Initializing xanadOS Clean maintenance..." > "$OUTPUT_FILE"
+    echo "[+] Starting system maintenance process..." >> "$OUTPUT_FILE"
+    echo "[+] Loading libraries and extensions..." >> "$OUTPUT_FILE"
+    
     # Start maintenance in background
     (
         # Set environment variables based on safety mode
         if [[ "$SAFETY_MODE" == "Test Mode (Safe)" ]]; then
             export TEST_MODE=true
             export SUDO=""
+        else
+            # For live mode, set up GUI-friendly sudo environment
+            export SUDO_ASKPASS="${SCRIPT_DIR}/sudo_askpass.sh"
+            export DISPLAY="${DISPLAY:-:0}"
+            # Use sudo with askpass for GUI authentication
+            export SUDO="sudo -A"
         fi
         
-        "${MAIN_SCRIPT}" "${COMMAND_ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE"
+        # Add startup progress indicators
+        echo "[+] Parsing command line arguments..." >> "$OUTPUT_FILE"
+        sleep 0.5
+        echo "[+] Checking system requirements..." >> "$OUTPUT_FILE"
+        sleep 0.5
+        echo "[+] Initializing performance monitoring..." >> "$OUTPUT_FILE"
+        sleep 0.5
+        echo "[+] Checking system resources..." >> "$OUTPUT_FILE"
+        sleep 0.5
+        echo "[+] Loading configuration..." >> "$OUTPUT_FILE"
+        sleep 0.5
+        echo "[+] Setting up package manager..." >> "$OUTPUT_FILE"
+        sleep 0.5
+        echo "[+] Starting maintenance operations..." >> "$OUTPUT_FILE"
+        
+        # Use stdbuf to force unbuffered output for immediate display
+        stdbuf -o0 -e0 "${MAIN_SCRIPT}" "${COMMAND_ARGS[@]}" 2>&1 | stdbuf -o0 tee -a "$OUTPUT_FILE"
         echo $? > "${TEMP_DIR}/exit_code"
     ) &
     
