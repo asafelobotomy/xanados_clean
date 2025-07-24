@@ -41,25 +41,7 @@ and system optimization into a single, reliable maintenance workflow.
 
 ## Quick Start
 
-### AppImage with GUI (Easiest)
-
-**🎯 NEW: Download and run the GUI AppImage for the easiest experience!**
-
-1. Download the latest AppImage from [Releases](https://github.com/asafelobotomy/xanados_clean/releases)
-2. Make it executable: `chmod +x xanadOS_Clean-2.0.0-x86_64.AppImage`
-3. Double-click to launch the GUI, or run from terminal:
-
-```bash
-# Launch GUI
-./xanadOS_Clean-2.0.0-x86_64.AppImage
-
-# Or use command line
-./xanadOS_Clean-2.0.0-x86_64.AppImage --auto
-```
-
-The AppImage includes both GUI and CLI interfaces and requires no installation.
-
-### Traditional Installation
+### Installation
 
 #### Option 1: Automated Installation (Recommended)
 

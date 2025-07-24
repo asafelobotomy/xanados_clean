@@ -84,7 +84,7 @@
 
 #### Enhanced Build System
 - **Improved CI/CD**: Multi-stage pipeline with testing and security scanning
-- **Automated Releases**: Automatic AppImage building and release creation
+- **Automated Releases**: Streamlined release process with continuous integration
 - **Security Scanning**: CodeQL, Semgrep integration for security analysis
 
 ### 📦 New Dependencies (Optional)

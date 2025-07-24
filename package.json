@@ -5,11 +5,9 @@
   "scripts": {
     "test": "cd tests && ./run_tests.sh",
     "test:arch": "cd tests && ./run_tests.sh test_core.bats",
-    "test:build": "cd tests && ./run_tests.sh test_build_appimage.bats",
     "lint:md": "markdownlint-cli2 '**/*.md'",
     "lint:sh": "shellcheck *.sh lib/*.sh tests/*.bash",
     "lint": "npm run lint:md && npm run lint:sh",
-    "build": "./build_appimage.sh xanados_clean.sh",
     "gui": "./gui/zenity_gui.sh",
     "docs": "echo 'Documentation available in docs/ directory'",
     "config": "echo 'Run ./xanados_clean.sh --create-config to create default config'"

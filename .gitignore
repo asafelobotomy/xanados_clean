@@ -2,10 +2,6 @@ node_modules/
 .npm/
 
 # Build artifacts
-*.AppImage
-appimagetool
-squashfs-root/
-*.AppDir/
 *.log
 
 # IDE files

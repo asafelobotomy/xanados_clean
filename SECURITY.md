@@ -41,7 +41,6 @@ xanadOS Clean has been enhanced with comprehensive security measures to protect 
 
 **Files Updated**:
 - `lib/maintenance.sh`
-- `build_gui_appimage.sh`
 
 ### 4. Improved Lock File Security ✅
 

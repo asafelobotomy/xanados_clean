@@ -17,7 +17,6 @@ This test suite has been optimized and consolidated to provide:
 - `test_runner.sh` - Main test runner with advanced options
 - `test_helpers.bash` - Consolidated test configuration and helper functions
 - `test_core.bats` - Core functionality tests
-- `test_build_appimage.bats` - AppImage build tests
 - Legacy files (maintained for compatibility):
   - `run_tests.sh` - Simple test runner
   - `setup_suite.bash` - Original test setup

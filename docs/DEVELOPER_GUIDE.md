@@ -472,8 +472,8 @@ npm run lint
 
 4. **Release Creation**
    - Create GitHub release
-   - Build AppImage: `./build_appimage.sh`
-   - Upload release artifacts
+   - Generate release artifacts
+   - Upload release files
 
 ### Contributing Guidelines
 

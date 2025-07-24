@@ -1091,7 +1091,7 @@ License: GPL-3.0" \
 main() {
     # Provide immediate feedback that the application is starting
     echo "[INFO] xanadOS Clean GUI starting..." >&2
-    echo "[INFO] If you see this message, the AppImage is working correctly." >&2
+    echo "[INFO] GUI application is launching successfully." >&2
     echo "[INFO] GUI dialogs should appear shortly..." >&2
     
     # Check for --no-welcome parameter
