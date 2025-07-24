@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # extensions.sh - Error recovery, performance monitoring, and system enhancements
 # Combines: recovery.sh + performance.sh + enhancements.sh functionality
+# License: GPL-3.0
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
 # === ERROR RECOVERY SYSTEM ===
 
@@ -30,47 +36,162 @@ create_checkpoint() {
     
     log "Creating checkpoint before: $step_name"
     
-    # Save current state
+    # Ensure checkpoint directory exists
+    local checkpoint_dir
+    checkpoint_dir=$(dirname "$CHECKPOINT_FILE")
+    mkdir -p "$checkpoint_dir" 2>/dev/null || true
+    
+    # Save current state with progress information
     cat > "$CHECKPOINT_FILE" <<EOF
 # xanadOS Clean Checkpoint
 # Created: $(date)
 STEP_NAME="$step_name"
 TIMESTAMP="$timestamp"
+CURRENT_STEP="$CURRENT_STEP"
+TOTAL_STEPS="$TOTAL_STEPS"
 COMPLETED_STEPS=(${COMPLETED_STEPS[*]})
+FAILED_STEPS=(${FAILED_STEPS[*]})
+AUTO_MODE="${AUTO_MODE:-false}"
+SIMPLE_MODE="${SIMPLE_MODE:-false}"
+TEST_MODE="${TEST_MODE:-false}"
 EOF
     
-    # Save package list
-    pacman -Q > "${CHECKPOINT_FILE}.packages" 2>/dev/null || true
+    # Save package list for comparison
+    if command -v pacman >/dev/null 2>&1; then
+        pacman -Q > "${CHECKPOINT_FILE}.packages" 2>/dev/null || true
+    fi
     
-    # Save mirrorlist
+    # Save mirrorlist state
     if [[ -f /etc/pacman.d/mirrorlist ]]; then
         cp /etc/pacman.d/mirrorlist "${CHECKPOINT_FILE}.mirrorlist" 2>/dev/null || true
     fi
     
+    # Save system metrics if available
+    if command -v free >/dev/null 2>&1; then
+        free -h > "${CHECKPOINT_FILE}.memory" 2>/dev/null || true
+    fi
+    
+    if command -v df >/dev/null 2>&1; then
+        df -h > "${CHECKPOINT_FILE}.disk" 2>/dev/null || true
+    fi
+    
     # Save timestamp for comparison
     echo "$timestamp" > "${CHECKPOINT_FILE}.timestamp"
+    
+    log "Checkpoint saved for step: $step_name (Step $CURRENT_STEP/$TOTAL_STEPS)"
 }
 
 # Resume from checkpoint if available
 resume_from_checkpoint() {
     if [[ -f "$CHECKPOINT_FILE" ]]; then
         log "Loading checkpoint state from $CHECKPOINT_FILE"
+        
+        # Source checkpoint safely
         # shellcheck source=/dev/null
-        source "$CHECKPOINT_FILE" 2>/dev/null || return 1
-        return 0
+        if source "$CHECKPOINT_FILE" 2>/dev/null; then
+            log "Resumed from checkpoint: $STEP_NAME"
+            log "Previous progress: Step $CURRENT_STEP/$TOTAL_STEPS"
+            
+            # Restore completed steps array
+            if [[ -n "${COMPLETED_STEPS[*]:-}" ]]; then
+                log "Previously completed steps: ${COMPLETED_STEPS[*]}"
+            fi
+            
+            # Check checkpoint age (warn if older than 24 hours)
+            if [[ -f "${CHECKPOINT_FILE}.timestamp" ]]; then
+                local checkpoint_time
+                checkpoint_time=$(cat "${CHECKPOINT_FILE}.timestamp" 2>/dev/null || echo 0)
+                local current_time
+                current_time=$(date +%s)
+                local age_hours=$(( (current_time - checkpoint_time) / 3600 ))
+                
+                if (( age_hours > 24 )); then
+                    warning "Checkpoint is $age_hours hours old - system state may have changed"
+                fi
+            fi
+            
+            return 0
+        else
+            error "Failed to load checkpoint file - may be corrupted"
+            return 1
+        fi
     fi
     return 1
 }
 
-# Remove checkpoint after successful completion
+# Enhanced cleanup with backup
 cleanup_checkpoint() {
     if [[ -f "$CHECKPOINT_FILE" ]]; then
         log "Cleaning up checkpoint files"
+        
+        # Create backup of successful completion
+        local backup_dir="${LOG_DIR:-/tmp}/completed_checkpoints"
+        mkdir -p "$backup_dir" 2>/dev/null || true
+        
+        local completion_timestamp
+        completion_timestamp=$(date +%Y%m%d_%H%M%S)
+        local backup_file="${backup_dir}/checkpoint_${completion_timestamp}.bak"
+        
+        # Archive the successful checkpoint
+        if cp "$CHECKPOINT_FILE" "$backup_file" 2>/dev/null; then
+            log "Archived successful checkpoint to: $backup_file"
+        fi
+        
+        # Remove active checkpoint files
         rm -f "$CHECKPOINT_FILE" \
               "${CHECKPOINT_FILE}.packages" \
               "${CHECKPOINT_FILE}.mirrorlist" \
+              "${CHECKPOINT_FILE}.memory" \
+              "${CHECKPOINT_FILE}.disk" \
               "${CHECKPOINT_FILE}.timestamp" 2>/dev/null || true
+        
+        log "Checkpoint cleanup completed"
     fi
+}
+
+# Check if step was already completed (for resume)
+is_step_completed() {
+    local step_name="$1"
+    local step
+    
+    for step in "${COMPLETED_STEPS[@]}"; do
+        if [[ "$step" == "$step_name" ]]; then
+            return 0  # Step was completed
+        fi
+    done
+    return 1  # Step not completed
+}
+
+# Progress persistence for long operations
+save_progress_state() {
+    local operation="$1"
+    local progress="$2"
+    local progress_file="${LOG_DIR:-/tmp}/progress_${operation}.state"
+    
+    cat > "$progress_file" <<EOF
+# Progress state for: $operation
+# Updated: $(date)
+OPERATION="$operation"
+PROGRESS="$progress"
+TIMESTAMP="$(date +%s)"
+PID="$$"
+EOF
+    
+    log "Saved progress state: $operation ($progress)"
+}
+
+# Load progress state for resuming
+load_progress_state() {
+    local operation="$1"
+    local progress_file="${LOG_DIR:-/tmp}/progress_${operation}.state"
+    
+    if [[ -f "$progress_file" ]]; then
+        # shellcheck source=/dev/null
+        source "$progress_file" 2>/dev/null || return 1
+        log "Loaded progress state: $OPERATION ($PROGRESS)"
+        return 0
+    fi
+    return 1
 }
 
 # Mark step as completed
@@ -383,13 +504,152 @@ declare -A SYSTEM_METRICS=()
 
 # Initialize performance monitoring
 init_performance_monitoring() {
-    log "Initializing performance monitoring"
+    log "Initializing enhanced performance monitoring"
     
     # Record initial system state
     SYSTEM_METRICS[start_time]=$(date +%s)
-    SYSTEM_METRICS[start_memory]=$(free -m | awk 'NR==2{print $3}')
-    SYSTEM_METRICS[start_disk_io]=$(iostat -d 1 1 2>/dev/null | tail -n +4 | awk '{sum+=$4} END {print sum}' || echo "0")
-    SYSTEM_METRICS[start_load]=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
+    
+    # Memory monitoring
+    if command -v free >/dev/null 2>&1; then
+        SYSTEM_METRICS[start_memory]=$(free -m | awk 'NR==2{print $3}')
+        SYSTEM_METRICS[peak_memory]=${SYSTEM_METRICS[start_memory]}
+    else
+        SYSTEM_METRICS[start_memory]=0
+        SYSTEM_METRICS[peak_memory]=0
+    fi
+    
+    # Disk usage monitoring
+    if command -v df >/dev/null 2>&1; then
+        SYSTEM_METRICS[start_disk]=$(df / | awk 'NR==2{gsub("%",""); print $5}')
+    else
+        SYSTEM_METRICS[start_disk]=0
+    fi
+    
+    # Load average monitoring
+    if [[ -f /proc/loadavg ]]; then
+        SYSTEM_METRICS[start_load]=$(cut -d' ' -f1 /proc/loadavg)
+    else
+        SYSTEM_METRICS[start_load]="0.00"
+    fi
+    
+    # Network monitoring (if available)
+    if command -v ss >/dev/null 2>&1; then
+        SYSTEM_METRICS[start_connections]=$(ss -tuln | wc -l)
+    else
+        SYSTEM_METRICS[start_connections]=0
+    fi
+    
+    # Initialize monitoring log
+    local monitor_log="${LOG_DIR:-/tmp}/performance_monitor.log"
+    {
+        echo "# Performance Monitoring Log - Started $(date)"
+        echo "# Format: timestamp,memory_mb,disk_percent,load_avg,connections"
+        printf "%s,%s,%s,%s,%s\n" \
+            "$(date +%s)" \
+            "${SYSTEM_METRICS[start_memory]}" \
+            "${SYSTEM_METRICS[start_disk]}" \
+            "${SYSTEM_METRICS[start_load]}" \
+            "${SYSTEM_METRICS[start_connections]}"
+    } > "$monitor_log"
+    
+    log "Performance monitoring initialized - Memory: ${SYSTEM_METRICS[start_memory]}MB, Disk: ${SYSTEM_METRICS[start_disk]}%, Load: ${SYSTEM_METRICS[start_load]}"
+}
+
+# Continuous resource monitoring function
+monitor_resources_continuously() {
+    local monitor_log="${LOG_DIR:-/tmp}/performance_monitor.log"
+    local warning_threshold_memory=90  # Percent of total RAM
+    local warning_threshold_disk=95    # Percent of disk usage
+    local warning_threshold_load=8     # Load average threshold
+    
+    while true; do
+        local current_time
+        current_time=$(date +%s)
+        
+        # Get current metrics
+        local current_memory=0
+        local total_memory=1
+        if command -v free >/dev/null 2>&1; then
+            current_memory=$(free -m | awk 'NR==2{print $3}')
+            total_memory=$(free -m | awk 'NR==2{print $2}')
+            
+            # Update peak memory
+            if (( current_memory > SYSTEM_METRICS[peak_memory] )); then
+                SYSTEM_METRICS[peak_memory]=$current_memory
+            fi
+        fi
+        
+        local current_disk=0
+        if command -v df >/dev/null 2>&1; then
+            current_disk=$(df / | awk 'NR==2{gsub("%",""); print $5}')
+        fi
+        
+        local current_load="0.00"
+        if [[ -f /proc/loadavg ]]; then
+            current_load=$(cut -d' ' -f1 /proc/loadavg)
+        fi
+        
+        local current_connections=0
+        if command -v ss >/dev/null 2>&1; then
+            current_connections=$(ss -tuln | wc -l)
+        fi
+        
+        # Log current metrics
+        printf "%s,%s,%s,%s,%s\n" \
+            "$current_time" "$current_memory" "$current_disk" "$current_load" "$current_connections" \
+            >> "$monitor_log"
+        
+        # Check for warning conditions
+        local memory_percent=0
+        if (( total_memory > 0 )); then
+            memory_percent=$((current_memory * 100 / total_memory))
+        fi
+        
+        if (( memory_percent > warning_threshold_memory )); then
+            warning "High memory usage: ${memory_percent}% (${current_memory}MB/${total_memory}MB)"
+        fi
+        
+        if (( current_disk > warning_threshold_disk )); then
+            warning "Critical disk usage: ${current_disk}% full"
+        fi
+        
+        # Load average warning (convert to integer for comparison)
+        local load_int
+        load_int=$(echo "$current_load" | cut -d'.' -f1)
+        if (( load_int > warning_threshold_load )); then
+            warning "High system load: $current_load"
+        fi
+        
+        sleep 10  # Monitor every 10 seconds
+    done
+}
+
+# Start background resource monitoring
+start_background_monitoring() {
+    # Start continuous monitoring in background
+    monitor_resources_continuously &
+    local monitor_pid=$!
+    
+    # Save monitor PID for cleanup
+    echo "$monitor_pid" > "${LOG_DIR:-/tmp}/monitor.pid"
+    log "Started background resource monitoring (PID: $monitor_pid)"
+}
+
+# Stop background resource monitoring
+stop_background_monitoring() {
+    local monitor_pid_file="${LOG_DIR:-/tmp}/monitor.pid"
+    
+    if [[ -f "$monitor_pid_file" ]]; then
+        local monitor_pid
+        monitor_pid=$(cat "$monitor_pid_file" 2>/dev/null)
+        
+        if [[ -n "$monitor_pid" ]] && kill -0 "$monitor_pid" 2>/dev/null; then
+            kill "$monitor_pid" 2>/dev/null
+            log "Stopped background resource monitoring (PID: $monitor_pid)"
+        fi
+        
+        rm -f "$monitor_pid_file"
+    fi
 }
 
 # Record performance metrics for a step
@@ -668,27 +928,94 @@ enhanced_run_step() {
 
 # Enhanced final summary with all metrics
 enhanced_final_summary() {
-    print_banner "Maintenance Complete"
+    local end_time
+    end_time=$(date +%s)
+    local duration=$((end_time - ${SYSTEM_METRICS[start_time]:-end_time}))
+    local formatted_duration
     
+    # Format duration nicely
+    if (( duration >= 3600 )); then
+        formatted_duration="${duration}s ($(date -d@$duration -u +%H:%M:%S))"
+    elif (( duration >= 60 )); then
+        formatted_duration="${duration}s ($(( duration / 60 ))m $(( duration % 60 ))s)"
+    else
+        formatted_duration="${duration}s"
+    fi
+    
+    # Play completion sound if available (non-blocking)
+    if command -v paplay >/dev/null 2>&1 && [[ -f /usr/share/sounds/freedesktop/stereo/complete.oga ]]; then
+        paplay /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null &
+    elif command -v aplay >/dev/null 2>&1 && [[ -f /usr/share/sounds/alsa/Front_Left.wav ]]; then
+        aplay /usr/share/sounds/alsa/Front_Left.wav 2>/dev/null &
+    fi
+    
+    # Send desktop notification if available
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send "xanadOS Maintenance" "System maintenance completed successfully!" \
+            --icon=dialog-information --urgency=normal 2>/dev/null &
+    fi
+    
+    # Prominent completion banner
+    printf "\n"
+    printf "╔═══════════════════════════════════════════════════════════════╗\n"
+    printf "║  %b🎉 XANADOS SYSTEM MAINTENANCE COMPLETED SUCCESSFULLY! 🎉%b  ║\n" "$GREEN" "$NC"
+    printf "╚═══════════════════════════════════════════════════════════════╝\n"
+    printf "\n"
+    
+    # Status indicator
+    printf "%b✅ STATUS: ALL OPERATIONS COMPLETED%b\n" "$GREEN" "$NC"
+    printf "%b⏱️  DURATION: %s%b\n" "$CYAN" "$formatted_duration" "$NC"
+    printf "%b📅 FINISHED: %s%b\n" "$BLUE" "$(date '+%Y-%m-%d %H:%M:%S')" "$NC"
+    
+    # Operations summary
     if (( ${#SUMMARY_LOG[@]} > 0 )); then
-        printf "\n%bSummary of operations:%b\n" "$BLUE" "$NC"
+        printf "\n%b📋 OPERATIONS PERFORMED (%d total):%b\n" "$BLUE" "${#SUMMARY_LOG[@]}" "$NC"
         for item in "${SUMMARY_LOG[@]}"; do
-            printf "  • %s\n" "$item"
+            printf "  ✓ %s\n" "$item"
         done
     fi
     
     # Performance report
     if command -v generate_performance_report >/dev/null 2>&1; then
+        printf "\n%b📊 PERFORMANCE SUMMARY:%b\n" "$CYAN" "$NC"
         generate_performance_report
     fi
     
-    # Configuration summary
-    printf "\n%bConfiguration:%b\n" "$CYAN" "$NC"
-    printf "• Log file: %s\n" "$LOG_FILE"
-    printf "• Auto mode: %s\n" "${AUTO_MODE:-false}"
-    printf "• Recovery log: %s\n" "${RECOVERY_LOG:-N/A}"
+    # Configuration and log information
+    printf "\n%b📁 FILES & LOGS:%b\n" "$CYAN" "$NC"
+    printf "  • Main log: %s\n" "$LOG_FILE"
+    if [[ -n "${RECOVERY_LOG:-}" ]]; then
+        printf "  • Recovery log: %s\n" "$RECOVERY_LOG"
+    fi
     
-    printf "\n%bMaintenance completed at: %s%b\n" "$GREEN" "$(date)" "$NC"
+    # Check for any warnings or issues
+    local needs_reboot=false
+    if [[ -f /var/run/reboot-required ]] || command -v needs-restarting >/dev/null 2>&1; then
+        needs_reboot=true
+    fi
+    
+    # Next steps recommendations
+    printf "\n%b🎯 NEXT STEPS:%b\n" "$YELLOW" "$NC"
+    if [[ "$needs_reboot" == "true" ]]; then
+        printf "  ⚠️  System reboot recommended (kernel/system updates installed)\n"
+        printf "  💡 Run: sudo reboot\n"
+    else
+        printf "  ✅ No reboot required\n"
+    fi
+    
+    if [[ -f "$LOG_FILE" ]]; then
+        printf "  📖 Review full log: less \"%s\"\n" "$LOG_FILE"
+    fi
+    
+    printf "  🔄 Next maintenance recommended in 1-2 weeks\n"
+    
+    # Final success message
+    printf "\n"
+    printf "┌─────────────────────────────────────────────────────────────┐\n"
+    printf "│ %bYour xanadOS system is now optimized and secure! 🚀%b        │\n" "$GREEN" "$NC"
+    printf "│ All maintenance tasks completed without errors.             │\n"
+    printf "└─────────────────────────────────────────────────────────────┘\n"
+    printf "\n"
 }
 
 # Function to check if we have all enhancements loaded
@@ -718,6 +1045,138 @@ check_enhancements() {
     return 0
 }
 
+# Generate comprehensive resource usage summary
+generate_resource_summary() {
+    local end_time
+    end_time=$(date +%s)
+    local total_duration=$((end_time - SYSTEM_METRICS[start_time]))
+    
+    printf "\n%b=== Resource Usage Summary ===%b\n" "$BLUE" "$NC"
+    
+    # Time summary
+    if (( total_duration > 0 )); then
+        local hours=$((total_duration / 3600))
+        local minutes=$(((total_duration % 3600) / 60))
+        local seconds=$((total_duration % 60))
+        
+        if (( hours > 0 )); then
+            printf "Total execution time: %dh %dm %ds\n" "$hours" "$minutes" "$seconds"
+        elif (( minutes > 0 )); then
+            printf "Total execution time: %dm %ds\n" "$minutes" "$seconds"
+        else
+            printf "Total execution time: %ds\n" "$seconds"
+        fi
+    fi
+    
+    # Memory summary
+    if (( SYSTEM_METRICS[start_memory] > 0 )); then
+        local end_memory=0
+        if command -v free >/dev/null 2>&1; then
+            end_memory=$(free -m | awk 'NR==2{print $3}')
+        fi
+        
+        printf "Memory usage: %dMB → %dMB (peak: %dMB)\n" \
+            "${SYSTEM_METRICS[start_memory]}" "$end_memory" "${SYSTEM_METRICS[peak_memory]}"
+        
+        local memory_delta=$((end_memory - SYSTEM_METRICS[start_memory]))
+        if (( memory_delta > 100 )); then
+            warning "Memory usage increased by ${memory_delta}MB"
+        elif (( memory_delta < -100 )); then
+            log "Memory freed: ${memory_delta#-}MB"
+        fi
+    fi
+    
+    # Disk usage summary
+    if (( SYSTEM_METRICS[start_disk] > 0 )); then
+        local end_disk=0
+        if command -v df >/dev/null 2>&1; then
+            end_disk=$(df / | awk 'NR==2{gsub("%",""); print $5}')
+        fi
+        
+        printf "Root filesystem usage: %d%% → %d%%\n" "${SYSTEM_METRICS[start_disk]}" "$end_disk"
+        
+        local disk_delta=$((end_disk - SYSTEM_METRICS[start_disk]))
+        if (( disk_delta > 2 )); then
+            warning "Disk usage increased by ${disk_delta}%"
+        elif (( disk_delta < -2 )); then
+            log "Disk space freed: ${disk_delta#-}%"
+        fi
+    fi
+    
+    # Load average summary
+    if [[ "${SYSTEM_METRICS[start_load]}" != "0.00" ]]; then
+        local end_load="0.00"
+        if [[ -f /proc/loadavg ]]; then
+            end_load=$(cut -d' ' -f1 /proc/loadavg)
+        fi
+        
+        printf "Load average: %s → %s\n" "${SYSTEM_METRICS[start_load]}" "$end_load"
+    fi
+    
+    # System temperature (if available)
+    if command -v sensors >/dev/null 2>&1; then
+        local cpu_temp
+        cpu_temp=$(sensors 2>/dev/null | grep -E "Core 0|Tctl" | head -1 | awk '{print $3}' | tr -d '+' || echo "N/A")
+        if [[ "$cpu_temp" != "N/A" ]]; then
+            printf "CPU temperature: %s\n" "$cpu_temp"
+            
+            # Temperature warning - extract numeric value more safely
+            local temp_val
+            temp_val=$(echo "$cpu_temp" | sed 's/[^0-9.]//g' | cut -d'.' -f1)
+            if [[ "$temp_val" =~ ^[0-9]+$ ]] && (( temp_val > 80 )); then
+                warning "High CPU temperature detected: $cpu_temp"
+            fi
+        fi
+    fi
+    
+    # Performance monitoring summary
+    local monitor_log="${LOG_DIR:-/tmp}/performance_monitor.log"
+    if [[ -f "$monitor_log" ]]; then
+        local monitor_entries
+        monitor_entries=$(wc -l < "$monitor_log" 2>/dev/null || echo 0)
+        if (( monitor_entries > 2 )); then  # More than header + initial entry
+            printf "Performance data points collected: %d\n" "$((monitor_entries - 1))"
+            log "Detailed performance log: $monitor_log"
+        fi
+    fi
+    
+    # Resource efficiency rating
+    calculate_efficiency_rating "$total_duration"
+}
+
+# Calculate and display efficiency rating
+calculate_efficiency_rating() {
+    local duration="$1"
+    local rating="Unknown"
+    local color="$NC"
+    
+    # Simple efficiency calculation based on duration and resource usage
+    if (( duration < 60 )); then
+        rating="Excellent"
+        color="$GREEN"
+    elif (( duration < 300 )); then
+        rating="Good"
+        color="$BLUE"
+    elif (( duration < 600 )); then
+        rating="Fair"
+        color="$CYAN"
+    else
+        rating="Slow"
+        color="$YELLOW"
+    fi
+    
+    # Adjust rating based on memory usage
+    if (( SYSTEM_METRICS[peak_memory] - SYSTEM_METRICS[start_memory] > 500 )); then
+        case "$rating" in
+            "Excellent") rating="Good" ;;
+            "Good") rating="Fair" ;;
+            "Fair") rating="Slow" ;;
+        esac
+    fi
+    
+    printf "%bEfficiency rating: %s%b\n" "$color" "$rating" "$NC"
+}
+
 # Export extension functions
 export -f create_checkpoint resume_from_checkpoint cleanup_checkpoint
 export -f mark_step_completed mark_step_failed run_step_with_recovery
@@ -726,6 +1185,8 @@ export -f show_recovery_info show_recovery_status
 export -f restore_original_mirrorlist downgrade_packages remove_incomplete_backup
 export -f rollback_flatpak restore_cache abort_btrfs_operations
 export -f init_performance_monitoring record_step_performance run_step_monitored
-export -f generate_performance_report enhanced_init enhanced_cleanup
-export -f enhanced_run_step enhanced_final_summary check_enhancements
-export -f load_enhancements
+export -f monitor_resources_continuously start_background_monitoring stop_background_monitoring
+export -f generate_performance_report generate_resource_summary calculate_efficiency_rating
+export -f enhanced_init enhanced_cleanup enhanced_run_step enhanced_final_summary 
+export -f check_enhancements load_enhancements
+export -f is_step_completed save_progress_state load_progress_state

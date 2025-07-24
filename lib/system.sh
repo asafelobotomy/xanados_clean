@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # system.sh - System checks, requirements, and resource monitoring
 # Contains: network checks, dependency verification, system monitoring
+# License: GPL-3.0
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
 # Network connectivity check
 check_network() {
@@ -432,19 +438,38 @@ check_drive_health() {
 analyze_memory_usage() {
     log "Analyzing memory usage"
     
-    local total_mem used_mem
-    local mem_info
-    mem_info=$(free -m | awk 'NR==2{print $2 " " $3}')
+    # Try multiple methods to get memory information
+    local total_mem used_mem mem_info
     
-    # Use array to safely parse the output
-    local mem_array
-    read -ra mem_array <<< "$mem_info"
-    total_mem=${mem_array[0]:-0}
-    used_mem=${mem_array[1]:-0}
+    # Method 1: Use free command
+    if command -v free >/dev/null 2>&1; then
+        mem_info=$(free -m 2>/dev/null | awk 'NR==2{print $2 " " $3}')
+        
+        if [[ -n "$mem_info" ]]; then
+            # Use array to safely parse the output
+            local mem_array
+            read -ra mem_array <<< "$mem_info"
+            total_mem=${mem_array[0]:-0}
+            used_mem=${mem_array[1]:-0}
+        fi
+    fi
+    
+    # Method 2: Fallback to /proc/meminfo if free failed
+    if [[ -z "$total_mem" ]] || [[ "$total_mem" -eq 0 ]] && [[ -r /proc/meminfo ]]; then
+        local memtotal memavailable
+        memtotal=$(grep "^MemTotal:" /proc/meminfo | awk '{print int($2/1024)}')
+        memavailable=$(grep "^MemAvailable:" /proc/meminfo | awk '{print int($2/1024)}')
+        
+        if [[ -n "$memtotal" && -n "$memavailable" ]]; then
+            total_mem="$memtotal"
+            used_mem=$((memtotal - memavailable))
+        fi
+    fi
     
     # Validate that we got numeric values
     if ! [[ "$total_mem" =~ ^[0-9]+$ ]] || ! [[ "$used_mem" =~ ^[0-9]+$ ]] || [[ "$total_mem" -eq 0 ]]; then
-        warning "Could not parse memory information"
+        warning "Could not parse memory information from available sources"
+        log "Debug: total_mem='$total_mem', used_mem='$used_mem', mem_info='$mem_info'"
         return 1
     fi
     
@@ -456,7 +481,7 @@ analyze_memory_usage() {
         # Show top memory consumers
         if command -v ps >/dev/null 2>&1; then
             log "Top memory consumers:"
-            ps aux --sort=-%mem | head -6 | awk 'NR>1{printf "  %s: %.1f%%\n", $11, $4}'
+            ps aux --sort=-%mem 2>/dev/null | head -6 | awk 'NR>1{printf "  %s: %.1f%%\n", $11, $4}' || true
         fi
     else
         log "Memory usage: ${usage_percent}% (${used_mem}MB/${total_mem}MB)"

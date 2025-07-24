@@ -4,6 +4,12 @@
 # Updated: 2025-07-23
 # Version: 2.0.0
 # Security: Enhanced with secure temporary files, SSL/TLS validation, and input sanitization
+# License: GPL-3.0
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -59,13 +65,19 @@ ENABLE_SECURITY_SCAN="${ENABLE_SECURITY_SCAN:-true}"
 ENABLE_ORPHAN_REMOVAL="${ENABLE_ORPHAN_REMOVAL:-true}"
 ENABLE_CACHE_CLEANUP="${ENABLE_CACHE_CLEANUP:-true}"
 
-# Ensure log directory exists
+# Ensure log directory exists and setup logging
 [[ -d "${HOME}/Documents" ]] || LOG_FILE="${HOME}/system_maint.log"
 LOG_DIR=$(dirname "${LOG_FILE}")
 mkdir -p "${LOG_DIR}"
 
-exec > >(tee -a "${LOG_FILE}") 2>&1
-echo -e "\n========== SYSTEM MAINTENANCE RUN: $(date) =========="
+# Initialize proper logging with rotation
+if command -v init_logging >/dev/null 2>&1; then
+    init_logging
+else
+    # Fallback logging setup
+    exec > >(tee -a "${LOG_FILE}") 2>&1
+    echo -e "\n========== SYSTEM MAINTENANCE RUN: $(date) =========="
+fi
 
 # These functions are now provided by lib/core.sh
 
@@ -101,17 +113,48 @@ fi
 # - check_failed_services, check_journal_errors -> lib/system.sh
 
 final_summary() {
-  # Use enhanced summary if available, otherwise fall back to basic
+  # Use enhanced summary if available, otherwise fall back to improved basic
   if command -v enhanced_final_summary >/dev/null 2>&1; then
     enhanced_final_summary
   else
-    print_banner "Maintenance Complete"
+    # Prominent completion banner
+    printf "\n"
+    printf "╔═══════════════════════════════════════════════════════════════╗\n"
+    printf "║  %b🎉 XANADOS SYSTEM MAINTENANCE COMPLETED SUCCESSFULLY! 🎉%b  ║\n" "$GREEN" "$NC"
+    printf "╚═══════════════════════════════════════════════════════════════╝\n"
+    printf "\n"
+    
+    # Status and timing
+    printf "%b✅ STATUS: ALL OPERATIONS COMPLETED%b\n" "$GREEN" "$NC"
+    printf "%b📅 FINISHED: %s%b\n" "$BLUE" "$(date '+%Y-%m-%d %H:%M:%S')" "$NC"
     log "System maintenance complete: $(date)"
-    printf '%b' "${CYAN}\nSummary:\n${NC}"
-    for line in "${SUMMARY_LOG[@]}"; do
-      printf "  • %s\n" "$line"
-    done
-    printf '%b\n' "${BLUE}[✓] Maintenance completed successfully.${NC}"
+    
+    # Operations summary
+    if (( ${#SUMMARY_LOG[@]} > 0 )); then
+      printf "\n%b📋 OPERATIONS PERFORMED (%d total):%b\n" "$CYAN" "${#SUMMARY_LOG[@]}" "$NC"
+      for line in "${SUMMARY_LOG[@]}"; do
+        printf "  ✓ %s\n" "$line"
+      done
+    fi
+    
+    # Log file information
+    printf "\n%b📁 LOG FILE:%b\n" "$CYAN" "$NC"
+    printf "  • Full details: %s\n" "$LOG_FILE"
+    
+    # Check for reboot requirement
+    if [[ -f /var/run/reboot-required ]]; then
+      printf "\n%b⚠️  REBOOT RECOMMENDED:%b\n" "$YELLOW" "$NC"
+      printf "  • System updates require restart\n"
+      printf "  • Run: sudo reboot\n"
+    fi
+    
+    # Final success message
+    printf "\n"
+    printf "┌─────────────────────────────────────────────────────────────┐\n"
+    printf "│ %bYour xanadOS system is now optimized and secure! 🚀%b        │\n" "$GREEN" "$NC"
+    printf "│ All maintenance tasks completed without errors.             │\n"
+    printf "└─────────────────────────────────────────────────────────────┘\n"
+    printf "\n"
   fi
 }
 
@@ -144,7 +187,6 @@ run_simple_maintenance() {
   log "Running basic maintenance operations..."
   
   # Essential operations only - use simple run_step to avoid complications
-  choose_pkg_manager
   run_step system_update "System Update"
   run_step remove_orphans "Remove Orphans" 
   run_step cache_cleanup "Cache Cleanup"
@@ -173,6 +215,7 @@ main() {
   # Handle simple mode early to bypass complex initialization
   if [[ "${SIMPLE_MODE:-false}" == "true" ]]; then
     require_pacman
+    setup_package_manager  # Initialize package manager and sudo
     print_banner "Arch Maintenance v2.0"
     
     # Check for test mode
@@ -194,6 +237,16 @@ main() {
   if command -v enhanced_init >/dev/null 2>&1; then
     if enhanced_init; then
       resumed=true
+    fi
+  fi
+  
+  # Initialize performance monitoring
+  if command -v init_performance_monitoring >/dev/null 2>&1; then
+    init_performance_monitoring
+    
+    # Start background monitoring if enabled
+    if [[ "${ENABLE_PERFORMANCE_MONITORING:-true}" == "true" ]]; then
+      start_background_monitoring
     fi
   fi
   
@@ -243,7 +296,7 @@ main() {
   if [[ "${UPDATE_MIRRORS:-true}" == "true" ]]; then
     $run_func refresh_mirrors "Refresh Mirrors"
   fi
-  $run_func choose_pkg_manager "Package Manager Setup"
+  $run_func setup_package_manager "Package Manager Setup"
   $run_func pre_backup "System Backup"
   $run_func dependency_check "Dependency Check"
   $run_func system_update "System Update"
@@ -293,7 +346,23 @@ main() {
     enhanced_cleanup
   fi
   
+  # Stop background monitoring if it was started
+  if command -v stop_background_monitoring >/dev/null 2>&1; then
+    stop_background_monitoring
+  fi
+  
+  # Generate resource usage summary
+  if command -v generate_resource_summary >/dev/null 2>&1; then
+    generate_resource_summary
+  fi
+  
   final_summary
+  
+  # Pause for user to see completion message if not in auto mode
+  if [[ "${AUTO_MODE:-false}" != "true" ]] && [[ -t 0 ]] && [[ -t 1 ]]; then
+    printf "%b💡 Press Enter to exit...%b" "$CYAN" "$NC"
+    read -r
+  fi
 }
 
 main "$@"

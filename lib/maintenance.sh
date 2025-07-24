@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # maintenance.sh - Configuration management and Arch-specific maintenance operations
 # Combines: config.sh + arch_optimizations.sh functionality
+# License: GPL-3.0
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
 # Configuration file search paths (in order of priority)
 if ! declare -p CONFIG_PATHS >/dev/null 2>&1; then
@@ -38,6 +44,47 @@ load_config() {
     
     # Validate and set defaults for critical variables
     validate_config
+    
+    # Fix pacman configuration issues if needed
+    fix_pacman_config
+}
+
+# Fix common pacman.conf configuration issues
+fix_pacman_config() {
+    local pacman_conf="/etc/pacman.conf"
+    local temp_conf="/tmp/pacman.conf.fixed"
+    
+    # Check if Color and VerbosePkgLists are in wrong location
+    if grep -q "^Color$" "$pacman_conf" || grep -q "^VerbosePkgLists$" "$pacman_conf"; then
+        log "Detected pacman configuration issues, attempting to fix..."
+        
+        # Create corrected configuration
+        {
+            # Copy everything up to the options section
+            sed '/^# Misc options$/,/^$/{
+                s/^#Color$/Color/
+                s/^#VerbosePkgLists$/VerbosePkgLists/
+            }' "$pacman_conf" | sed '/^Color$/d; /^VerbosePkgLists$/d'
+        } > "$temp_conf"
+        
+        # Verify the fixed config is valid
+        if pacman-conf --config="$temp_conf" --help >/dev/null 2>&1; then
+            if [[ "${AUTO_MODE:-false}" == "true" ]] || [[ "${TEST_MODE:-false}" == "true" ]]; then
+                log "Would fix pacman.conf configuration (TEST/AUTO mode)"
+            else
+                read -rp "Fix pacman.conf configuration issues? [Y/n] " fix_config
+                if [[ ! "${fix_config,,}" =~ ^n ]]; then
+                    $SUDO cp "$temp_conf" "$pacman_conf" && \
+                    log "Fixed pacman.conf configuration" || \
+                    warning "Failed to fix pacman.conf"
+                fi
+            fi
+        else
+            warning "Generated pacman.conf fix appears invalid, skipping"
+        fi
+        
+        rm -f "$temp_conf"
+    fi
 }
 
 # Check if pacman is locked and wait or handle appropriately
@@ -469,7 +516,7 @@ advanced_package_maintenance() {
     log "Checking for modified configuration files..."
     if command -v pacman >/dev/null; then
         local modified_configs
-        modified_configs=$(pacman -Qii | grep -c "MODIFIED" || echo "0")
+        modified_configs=$(pacman -Qii 2>/dev/null | grep -c "MODIFIED" || echo "0")
         if [[ $modified_configs -gt 0 ]]; then
             log "Found $modified_configs modified configuration files"
             if [[ "${AUTO_MODE:-false}" != "true" ]]; then
@@ -484,7 +531,7 @@ advanced_package_maintenance() {
     # Package integrity verification
     log "Verifying package integrity..."
     local integrity_issues
-    integrity_issues=$(pacman -Qk 2>&1 | grep -cE "(warning|error)" || echo "0")
+    integrity_issues=$(pacman -Qk 2>&1 | grep -cE "(warning|error)" 2>/dev/null || echo "0")
     if [[ $integrity_issues -gt 0 ]]; then
         warning "Found $integrity_issues package integrity issues"
     else
@@ -728,7 +775,14 @@ system_update() {
             return 1
         fi
     else
-        if ! run_with_timeout 300 pkg_mgr_run -Syu --noconfirm; then
+        # Construct the full command for non-pacman package managers
+        local cmd_array=()
+        if [[ -n "${USER_CMD[*]:-}" ]]; then
+            cmd_array+=("${USER_CMD[@]}")
+        fi
+        cmd_array+=("$PKG_MGR" -Syu --noconfirm)
+        
+        if ! run_with_timeout 300 "${cmd_array[@]}"; then
             warning "System update timed out or failed, continuing with other operations"
             return 1
         fi
@@ -811,7 +865,7 @@ security_scan() {
     fi
     
     if [[ ! " ${DISABLED_FEATURES[*]} " =~ " arch-audit " ]]; then
-        if arch-audit | grep -q CVE; then
+        if arch-audit 2>/dev/null | grep -q CVE; then
             summary "⚠️ Vulnerable packages found."
         else
             summary "No vulnerabilities detected."
@@ -820,8 +874,9 @@ security_scan() {
 
     if [[ ! " ${DISABLED_FEATURES[*]} " =~ " rkhunter " ]]; then
         update_tool_if_outdated rkhunter
-        ${SUDO} rkhunter --update
-        if ${SUDO} rkhunter --check --skip-keypress --rwo | grep -q Warning; then
+        ${SUDO} rkhunter --update >/dev/null 2>&1
+        # Suppress grep warnings by redirecting stderr and using safer patterns
+        if ${SUDO} rkhunter --check --skip-keypress --rwo 2>/dev/null | grep -E "Warning|warning" >/dev/null 2>&1; then
             summary "⚠️ rkhunter reported warnings."
         else
             summary "rkhunter scan clean."

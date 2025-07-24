@@ -2,6 +2,12 @@
 # zenity_gui.sh - Interactive GUI for xanadOS Clean using Zenity with real-time prompt handling
 # Author: GitHub Copilot
 # Version: 2.0.0
+# License: GPL-3.0
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
 # Set up variables
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -1070,7 +1076,7 @@ Features:
 • Performance monitoring and reporting
 
 Author: GitHub Copilot
-License: MIT" \
+License: GPL-3.0" \
                     --width=500 \
                     --height=300
                 ;;
