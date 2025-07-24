@@ -20,6 +20,13 @@ if [[ $# -eq 0 ]]; then
     echo "Running all tests..."
     bats "$SCRIPT_DIR"/*.bats
 else
-    echo "Running specific test: $1"
-    bats "$SCRIPT_DIR/$1"
+    # Handle legacy test file reference
+    if [[ "$1" == "test_xanados_clean.bats" ]]; then
+        echo "Note: test_xanados_clean.bats has been replaced with test_core.bats"
+        echo "Running test_core.bats instead..."
+        bats "$SCRIPT_DIR/test_core.bats"
+    else
+        echo "Running specific test: $1"
+        bats "$SCRIPT_DIR/$1"
+    fi
 fi

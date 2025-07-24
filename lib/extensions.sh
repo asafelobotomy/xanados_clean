@@ -439,10 +439,9 @@ run_step_monitored() {
     fi
     
     # Performance monitoring setup
-    local start_time start_memory start_io
+    local start_time start_memory
     start_time=$(date +%s)
     start_memory=$(free -m | awk 'NR==2{print $3}')
-    start_io=$(iostat -d 1 1 2>/dev/null | tail -n +4 | awk '{sum+=$4} END {print sum}' || echo "0")
     
     # Create checkpoint for critical operations
     if is_critical_step "$func"; then
@@ -455,29 +454,38 @@ run_step_monitored() {
     local peak_memory=$start_memory
     local monitor_pid
     
-    # Background memory monitoring
-    (
+    # Background memory monitoring using temp file to share variable
+    local peak_memory_file
+    peak_memory_file=$(mktemp)
+    echo "$peak_memory" > "$peak_memory_file"
+    
+    {
         while sleep 5; do
             local current_mem
             current_mem=$(free -m | awk 'NR==2{print $3}')
-            if (( current_mem > peak_memory )); then
-                peak_memory=$current_mem
+            local stored_peak
+            stored_peak=$(cat "$peak_memory_file")
+            if (( current_mem > stored_peak )); then
+                echo "$current_mem" > "$peak_memory_file"
             fi
         done
-    ) &
+    } &
     monitor_pid=$!
     
     # Execute the actual function
     local func_result=0
     if $func; then
-        local end_time end_memory end_io
+        local end_time end_memory
         end_time=$(date +%s)
         end_memory=$(free -m | awk 'NR==2{print $3}')
-        end_io=$(iostat -d 1 1 2>/dev/null | tail -n +4 | awk '{sum+=$4} END {print sum}' || echo "0")
         
         # Stop monitoring
         kill $monitor_pid 2>/dev/null || true
         wait $monitor_pid 2>/dev/null || true
+        
+        # Read final peak memory value
+        peak_memory=$(cat "$peak_memory_file")
+        rm -f "$peak_memory_file"
         
         # Record performance metrics
         record_step_performance "$func" "$start_time" "$end_time" "$peak_memory"

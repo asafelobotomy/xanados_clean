@@ -210,7 +210,9 @@ source_script_functions() {
     source_project_libraries
     
     # Set up variables that the script expects
-    export SCRIPT_DIR="$(dirname "$script_path")"
+    local script_dir
+    script_dir="$(dirname "$script_path")"
+    export SCRIPT_DIR="$script_dir"
     export GREEN='\033[0;32m'
     export BLUE='\033[1;34m'
     export CYAN='\033[1;36m'
@@ -261,6 +263,7 @@ assert_output_matches() {
 # Helper to check exit status
 assert_status() {
     local expected_status="$1"
+    # shellcheck disable=SC2154  # status is a BATS built-in variable
     if [[ "$status" -ne "$expected_status" ]]; then
         echo "Expected exit status: $expected_status"
         echo "Actual exit status: $status"

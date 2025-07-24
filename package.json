@@ -4,7 +4,7 @@
   "description": "Professional-grade maintenance automation for Arch Linux systems with configuration management, testing, and error recovery.",
   "scripts": {
     "test": "cd tests && ./run_tests.sh",
-    "test:arch": "cd tests && ./run_tests.sh test_xanados_clean.bats",
+    "test:arch": "cd tests && ./run_tests.sh test_core.bats",
     "test:build": "cd tests && ./run_tests.sh test_build_appimage.bats",
     "lint:md": "markdownlint-cli2 '**/*.md'",
     "lint:sh": "shellcheck *.sh lib/*.sh tests/*.bash",

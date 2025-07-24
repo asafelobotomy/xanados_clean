@@ -1,8 +1,13 @@
 # xanadOS Clean - Arch Linux System Maintenance
 
-**Version 2.0.0** - Professional-grade maintenance automation for Arch Linux systems with configuration management, error recovery, and comprehensive testing.
+**Version 2.0.0** - Professional-grade maintenance automation for Arch Linux
+systems with configuration management, error recovery, and comprehensive
+testing.
 
-This repository provides a comprehensive system maintenance script designed specifically for Arch Linux and its derivatives (Manjaro, EndeavourOS, etc.). The script combines package management, security scanning, backup operations, and system optimization into a single, reliable maintenance workflow.
+This repository provides a comprehensive system maintenance script designed
+specifically for Arch Linux and its derivatives (Manjaro, EndeavourOS, etc.).
+The script combines package management, security scanning, backup operations,
+and system optimization into a single, reliable maintenance workflow.
 
 ## ✨ Key Features
 
@@ -56,7 +61,7 @@ The AppImage includes both GUI and CLI interfaces and requires no installation.
 
 ### Traditional Installation
 
-**Option 1: Automated Installation (Recommended)**
+#### Option 1: Automated Installation (Recommended)
 
 ```bash
 git clone https://github.com/asafelobotomy/xanados_clean.git
@@ -65,12 +70,13 @@ cd xanados_clean
 ```
 
 This will:
+
 - Install xanadOS Clean system-wide
 - Create symlinks for easy access
 - Set up systemd automation (optional)
 - Configure both full and simple modes
 
-**Option 2: Manual Installation**
+#### Option 2: Manual Installation
 
 1. Clone the repository:
 
@@ -95,11 +101,14 @@ This will:
 xanadOS Clean offers multiple modes to suit different user needs:
 
 #### 🔧 Full Mode (Default)
+
 Complete maintenance with all advanced features:
+
 ```bash
 xanados-clean                    # Interactive
 xanados-clean --auto             # Automatic
 ```
+
 - Full package management (pacman + AUR)
 - Security scanning (rkhunter, arch-audit)
 - Performance monitoring
@@ -108,11 +117,14 @@ xanados-clean --auto             # Automatic
 - Error recovery
 
 #### 🚀 Simple Mode (New!)
+
 Basic maintenance for casual users (like arch-cleaner):
+
 ```bash
 xanados-clean --simple           # Installed version
 ./xanados_clean.sh --simple      # Local version
 ```
+
 - System package updates
 - Orphaned package removal
 - Cache cleanup
@@ -120,13 +132,16 @@ xanados-clean --simple           # Installed version
 - Fast execution (~2-3 minutes)
 
 #### 🏢 Automated Mode
+
 System-wide automation via systemd:
+
 ```bash
 # Set up during installation
 ./install.sh
 
 # Manual timer management
 systemctl --user enable xanados-clean.timer
+```
 systemctl --user start xanados-clean.timer
 ```
 

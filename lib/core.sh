@@ -125,12 +125,12 @@ parse_arguments() {
                 AUTO_MODE=true
                 ;;
             -s|--simple)
-                SIMPLE_MODE=true
+                export SIMPLE_MODE=true
                 AUTO_MODE=true
                 log "Running in simple mode - basic maintenance only"
                 ;;
             -t|--test-mode)
-                TEST_MODE=true
+                export TEST_MODE=true
                 log "Running in test mode - no actual changes will be made"
                 ;;
             --ask-each)
@@ -138,7 +138,7 @@ parse_arguments() {
                 ;;
             --config)
                 if [[ -n "${2:-}" ]]; then
-                    CONFIG_FILE="$2"
+                    export CONFIG_FILE="$2"
                     shift
                 else
                     error "Error: --config requires a file path"

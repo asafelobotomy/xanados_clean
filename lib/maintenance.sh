@@ -469,7 +469,7 @@ advanced_package_maintenance() {
     log "Checking for modified configuration files..."
     if command -v pacman >/dev/null; then
         local modified_configs
-        modified_configs=$(pacman -Qii | grep "MODIFIED" | wc -l)
+        modified_configs=$(pacman -Qii | grep -c "MODIFIED" || echo "0")
         if [[ $modified_configs -gt 0 ]]; then
             log "Found $modified_configs modified configuration files"
             if [[ "${AUTO_MODE:-false}" != "true" ]]; then
@@ -484,7 +484,7 @@ advanced_package_maintenance() {
     # Package integrity verification
     log "Verifying package integrity..."
     local integrity_issues
-    integrity_issues=$(pacman -Qk 2>&1 | grep -E "(warning|error)" | wc -l)
+    integrity_issues=$(pacman -Qk 2>&1 | grep -cE "(warning|error)" || echo "0")
     if [[ $integrity_issues -gt 0 ]]; then
         warning "Found $integrity_issues package integrity issues"
     else
@@ -701,11 +701,11 @@ refresh_mirrors() {
     fi
     
     log "Refreshing mirrorlist before any installs or upgrades..."
-    if ! run_with_timeout 120 ${SUDO} pacman -Sy --noconfirm reflector; then
+    if ! run_with_timeout 120 "${SUDO}" pacman -Sy --noconfirm reflector; then
         warning "Reflector installation timed out, using existing mirrors"
     fi
     optimize_mirrors
-    if ! run_with_timeout 60 ${SUDO} pacman -Sy --noconfirm; then
+    if ! run_with_timeout 60 "${SUDO}" pacman -Sy --noconfirm; then
         warning "Mirror refresh timed out, continuing with existing mirrors"
     fi
     summary "Package mirrors refreshed and optimized."
@@ -723,7 +723,7 @@ system_update() {
     
     log "Starting system update with timeout protection..."
     if [[ ${PKG_MGR} == pacman ]]; then
-        if ! run_with_timeout 300 ${SUDO} pacman -Syu --noconfirm; then
+        if ! run_with_timeout 300 "${SUDO}" pacman -Syu --noconfirm; then
             warning "System update timed out or failed, continuing with other operations"
             return 1
         fi
